@@ -4,6 +4,6 @@
 
 from .message_handler import MessageHandler
 from .analysis_handler import AnalysisHandler
-from .conversation_handler import ConversationHandler
+from .conversation_handler import BotConversationHandler
 
-__all__ = ['MessageHandler', 'AnalysisHandler', 'ConversationHandler']
+__all__ = ['MessageHandler', 'AnalysisHandler', 'BotConversationHandler']

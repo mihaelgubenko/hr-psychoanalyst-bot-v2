@@ -12,7 +12,7 @@ from ai.adaptive_prompt_manager import PromptType
 
 logger = logging.getLogger(__name__)
 
-class ConversationHandler:
+class BotConversationHandler:
     """Обработчик диалогов с умным управлением контекстом"""
     
     def __init__(self, ai_client, database):

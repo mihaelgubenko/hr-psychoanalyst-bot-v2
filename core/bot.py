@@ -13,7 +13,7 @@ from ai.openai_client import OpenAIClient
 from ai.adaptive_prompt_manager import PromptType
 from handlers.message_handler import MessageHandler as BotMessageHandler
 from handlers.analysis_handler import AnalysisHandler
-from handlers.conversation_handler import ConversationHandler
+from handlers.conversation_handler import BotConversationHandler
 
 logger = logging.getLogger(__name__)
 
@@ -28,7 +28,7 @@ class HRPsychoanalystBot:
         # Инициализируем обработчики
         self.message_handler = BotMessageHandler(self.ai_client, self.db)
         self.analysis_handler = AnalysisHandler(self.ai_client, self.db)
-        self.conversation_handler = ConversationHandler(self.ai_client, self.db)
+        self.conversation_handler = BotConversationHandler(self.ai_client, self.db)
         
         # Создаем приложение
         self.application = ApplicationBuilder().token(config.bot_token).build()
