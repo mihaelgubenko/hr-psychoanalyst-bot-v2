@@ -63,9 +63,10 @@ class HRPsychoanalystBot:
         # Иначе обычный handler перехватывает все сообщения
         self._setup_conversation_handlers()
         
-        # Обработчик обычных сообщений (должен быть ПОСЛЕДНИМ!)
+        # Обработчик обычных сообщений в группе 1 (низкий приоритет, ПОСЛЕДНИМ!)
         self.application.add_handler(
-            TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.conversation_handler.handle_message)
+            TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.conversation_handler.handle_message),
+            group=1
         )
     
     def _setup_conversation_handlers(self):
@@ -78,30 +79,37 @@ class HRPsychoanalystBot:
             entry_points=[TGMessageHandler(filters.Regex(r'полный анализ|детальный анализ'), 
                                        self.analysis_handler.start_full_analysis)],
             states={
-                'Q1': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q2': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q3': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q4': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q5': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q6': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q7': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q1': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q2': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q3': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q4': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q5': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q6': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
+                'Q7': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
             },
             fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
-            allow_reentry=True
+            allow_reentry=True,
+            per_message=False,
+            per_chat=True,
+            per_user=True
         )
         
         # Обработчик для теста самооценки
         self_esteem_handler = ConversationHandler(
             entry_points=[CommandHandler('self_esteem', self.analysis_handler.start_self_esteem_test)],
             states={
-                'SELF_ESTEEM_Q': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_self_esteem_answer)]
+                'SELF_ESTEEM_Q': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_self_esteem_answer)]
             },
             fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
-            allow_reentry=True
+            allow_reentry=True,
+            per_message=False,
+            per_chat=True,
+            per_user=True
         )
         
-        self.application.add_handler(full_analysis_handler)
-        self.application.add_handler(self_esteem_handler)
+        # Добавляем ConversationHandlers в группу 0 (высокий приоритет)
+        self.application.add_handler(full_analysis_handler, group=0)
+        self.application.add_handler(self_esteem_handler, group=0)
     
     async def start(self):
         """Запуск бота"""
