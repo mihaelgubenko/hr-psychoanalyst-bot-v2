@@ -118,7 +118,7 @@ class TokenManager:
         
         if max_context_tokens <= 0:
             # Если даже промпт не помещается, используем минимальный контекст
-            max_context_tokens = self.config.MIN_TOKENS
+            max_context_tokens = getattr(self.config, 'min_tokens', 100)
             logger.warning(f"Промпт слишком длинный, используется минимальный контекст")
         
         # Сжимаем контекст
@@ -171,7 +171,7 @@ class TokenManager:
     def split_long_response(self, response: str, max_length: int = None) -> List[str]:
         """Разбиение длинного ответа на части"""
         if max_length is None:
-            max_length = self.config.MAX_MESSAGE_LENGTH
+            max_length = getattr(self.config, 'max_message_length', 4000)
         
         if len(response) <= max_length:
             return [response]

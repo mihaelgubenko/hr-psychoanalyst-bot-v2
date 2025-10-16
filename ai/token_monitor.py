@@ -169,7 +169,7 @@ class TokenMonitor:
         
         # Адаптация на основе длины контекста
         if context_length > 15:
-            optimal_limit = max(optimal_limit - 500, self.config.MIN_TOKENS)
+            optimal_limit = max(optimal_limit - 500, getattr(self.config, 'min_tokens', 100))
         elif context_length < 5:
             optimal_limit = min(optimal_limit + 300, getattr(self.config, 'max_tokens', 4000) + 500)
         
