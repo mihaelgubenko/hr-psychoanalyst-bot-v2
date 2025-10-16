@@ -59,13 +59,14 @@ class HRPsychoanalystBot:
         # Обработчик нажатий на кнопки (InlineKeyboard)
         self.application.add_handler(CallbackQueryHandler(self.message_handler.handle_button_click))
         
-        # Обработчик сообщений
+        # ВАЖНО: Обработчики состояний ПЕРЕД обычным message handler!
+        # Иначе обычный handler перехватывает все сообщения
+        self._setup_conversation_handlers()
+        
+        # Обработчик обычных сообщений (должен быть ПОСЛЕДНИМ!)
         self.application.add_handler(
             TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.conversation_handler.handle_message)
         )
-        
-        # Обработчики состояний для анализа
-        self._setup_conversation_handlers()
     
     def _setup_conversation_handlers(self):
         """Настройка обработчиков состояний диалога"""
