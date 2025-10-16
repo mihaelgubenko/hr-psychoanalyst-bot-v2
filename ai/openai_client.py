@@ -155,6 +155,10 @@ class OpenAIClient:
                 response_time=time.time() - start_time
             )
     
+    async def get_direct_response(self, prompt: str, user_id: int) -> str:
+        """Прямой вызов OpenAI без кэша и оптимизации промптов (для анализа тестов)"""
+        return await self._call_openai(prompt, "", user_id)
+    
     async def _call_openai(self, prompt: str, context: str, user_id: int) -> str:
         """Вызов OpenAI API"""
         
