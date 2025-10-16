@@ -30,6 +30,9 @@ class HRPsychoanalystBot:
         self.analysis_handler = AnalysisHandler(self.ai_client, self.db)
         self.conversation_handler = BotConversationHandler(self.ai_client, self.db)
         
+        # Даем message_handler доступ к analysis_handler для кнопок теста
+        self.message_handler.analysis_handler = self.analysis_handler
+        
         # Создаем приложение
         self.application = ApplicationBuilder().token(config.bot_token).build()
         
@@ -47,8 +50,10 @@ class HRPsychoanalystBot:
         self.application.add_handler(CommandHandler('cancel', self.message_handler.cancel))
         self.application.add_handler(CommandHandler('reset', self.message_handler.reset_bot))
         
-        # Анализ и консультации
+        # Анализ и консультации - 3 варианта теста!
         self.application.add_handler(CommandHandler('self_esteem', self.analysis_handler.start_self_esteem_test))
+        self.application.add_handler(CommandHandler('test_quick', self.analysis_handler.start_quick_test))
+        self.application.add_handler(CommandHandler('test_buttons', self.analysis_handler.start_button_test))
         self.application.add_handler(CommandHandler('consultation', self.message_handler.consultation_info))
         
         # Административные команды

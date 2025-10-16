@@ -254,20 +254,42 @@ class MessageHandler:
     async def handle_button_click(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработчик нажатий на кнопки InlineKeyboard"""
         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        from handlers.analysis_handler import AnalysisHandler
         
         query = update.callback_query
         await query.answer()
         
         data = query.data
         
+        # Проверяем, это кнопки теста?
+        if data.startswith('btn_test_'):
+            if hasattr(self, 'analysis_handler'):
+                await self.analysis_handler.handle_button_test_answer(update, context)
+            return
+        
         if data == 'test_samoocenka':
-            # Перенаправляем на тест самооценки
-            await query.edit_message_text(
-                "📊 **ТЕСТ САМООЦЕНКИ**\n\n"
-                "Отлично! Сейчас запустим тест.\n"
-                "Используйте команду: /self\\_esteem",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            # Показываем варианты теста
+            test_variants_text = """
+📊 **ТЕСТ САМООЦЕНКИ - ВЫБЕРИТЕ ФОРМАТ**
+
+🚀 **Быстрый тест** (рекомендуется!)
+Ответьте на все 10 вопросов одним сообщением
+⏱️ 3-5 минут
+📝 /test\\_quick
+
+🎯 **Тест с кнопками**
+Отвечайте кнопками на каждый вопрос
+⏱️ 3 минуты
+🔘 /test\\_buttons
+
+💬 **Классический тест**  
+Диалог: вопрос-ответ (может не работать)
+⏱️ 5-7 минут
+📖 /self\\_esteem
+
+💡 *Рекомендую Быстрый тест - надежнее работает!*
+"""
+            await query.edit_message_text(test_variants_text, parse_mode=ParseMode.MARKDOWN)
             
         elif data == 'consultation':
             # Свободная консультация

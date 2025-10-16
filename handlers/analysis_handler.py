@@ -19,6 +19,7 @@ class AnalysisHandler:
         self.ai_client = ai_client
         self.database = database
         self.user_data = {}  # user_id -> analysis data
+        self.button_test_data = {}  # user_id -> {answers, current_q} для теста с кнопками
     
     async def start_self_esteem_test(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """Начало теста самооценки"""
@@ -396,3 +397,251 @@ class AnalysisHandler:
             return f"**Вопрос {question_num + 1} из 10:**\n{questions[question_num]}\n\n{progress}"
         
         return "Все вопросы завершены!"
+    
+    # ==================== НОВЫЕ МЕТОДЫ - ВАРИАНТ 4 ====================
+    
+    async def start_quick_test(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Быстрый тест самооценки - все вопросы одним сообщением"""
+        quick_test_text = """
+📖 **БЫСТРЫЙ ТЕСТ САМООЦЕНКИ | "Восхождение"**
+
+Ответьте на все 10 вопросов **одним сообщением** (по пунктам):
+
+1️⃣ Ваша ценность как личности (1-10)?
+2️⃣ Насколько довольны собой и достижениями?
+3️⃣ Верите ли в свои способности справляться с трудностями?
+4️⃣ Какие страхи чаще всего мешают действовать?
+5️⃣ Как часто испытываете гнев или раздражение?
+6️⃣ Есть ли обиды на людей из прошлого?
+7️⃣ Знаете ли свое предназначение в жизни?
+8️⃣ Что придает смысл вашей жизни?
+9️⃣ Как проявляете любовь к себе?
+🔟 Чувствуете ли себя свободным быть собой?
+
+📝 **ПРИМЕР ОТВЕТА:**
+```
+1. 7
+2. В целом доволен, но хочу больше
+3. Да, верю
+4. Страх неудачи и осуждения
+5. Редко, стараюсь контролировать
+6. Есть пара обид на близких
+7. Пока ищу
+8. Семья и духовность
+9. Медитирую, забочусь о здоровье
+10. Не всегда, иногда боюсь быть собой
+```
+
+💡 *Просто скопируйте пример и замените на свои ответы!*
+
+⏱️ **Время:** 3-5 минут
+📊 **Результат:** Детальный анализ на основе книги "Восхождение"
+"""
+        await update.message.reply_text(quick_test_text, parse_mode=ParseMode.MARKDOWN)
+        
+        # Устанавливаем флаг ожидания ответов
+        context.user_data['waiting_for'] = 'quick_test_answers'
+    
+    async def start_button_test(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Тест самооценки с кнопками"""
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        # Инициализируем данные
+        self.button_test_data[update.effective_user.id] = {
+            'answers': [],
+            'current_question': 0
+        }
+        
+        intro_text = """
+📖 **ТЕСТ САМООЦЕНКИ С КНОПКАМИ | "Восхождение"**
+
+Отвечайте на вопросы, нажимая кнопки.
+
+⏱️ **Время:** ~3 минуты
+📊 **Результат:** Анализ на основе книги "Восхождение"
+
+Начинаем! ⬇️
+"""
+        await update.message.reply_text(intro_text, parse_mode=ParseMode.MARKDOWN)
+        
+        # Показываем первый вопрос
+        await self._show_button_question(update, 0)
+    
+    async def _show_button_question(self, update: Update, question_num: int) -> None:
+        """Показать вопрос с кнопками"""
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        questions_with_buttons = [
+            {
+                'text': "**Вопрос 1/10:**\nКак вы оцениваете свою ценность как личности?",
+                'buttons': [[InlineKeyboardButton(str(i), callback_data=f'btn_test_q0_a{i}') for i in range(1, 6)],
+                           [InlineKeyboardButton(str(i), callback_data=f'btn_test_q0_a{i}') for i in range(6, 11)]]
+            },
+            {
+                'text': "**Вопрос 2/10:**\nНасколько вы довольны собой?",
+                'buttons': [
+                    [InlineKeyboardButton("Очень доволен", callback_data='btn_test_q1_a1')],
+                    [InlineKeyboardButton("Скорее доволен", callback_data='btn_test_q1_a2')],
+                    [InlineKeyboardButton("Не очень", callback_data='btn_test_q1_a3')],
+                    [InlineKeyboardButton("Недоволен", callback_data='btn_test_q1_a4')]
+                ]
+            },
+            {
+                'text': "**Вопрос 3/10:**\nВерите ли в свои способности?",
+                'buttons': [
+                    [InlineKeyboardButton("Полностью верю", callback_data='btn_test_q2_a1')],
+                    [InlineKeyboardButton("Скорее да", callback_data='btn_test_q2_a2')],
+                    [InlineKeyboardButton("Сомневаюсь", callback_data='btn_test_q2_a3')],
+                    [InlineKeyboardButton("Не верю", callback_data='btn_test_q2_a4')]
+                ]
+            },
+            # Остальные вопросы упростим для демо
+            {
+                'text': f"**Вопрос 4/10:**\nКакие страхи мешают вам?",
+                'buttons': [
+                    [InlineKeyboardButton("Страх неудачи", callback_data='btn_test_q3_a1')],
+                    [InlineKeyboardButton("Страх осуждения", callback_data='btn_test_q3_a2')],
+                    [InlineKeyboardButton("Нет сильных страхов", callback_data='btn_test_q3_a3')]
+                ]
+            },
+            {
+                'text': "**Вопрос 5/10:**\nКак часто гнев?",
+                'buttons': [[InlineKeyboardButton(str(i), callback_data=f'btn_test_q4_a{i}') for i in range(1, 6)],
+                           [InlineKeyboardButton(str(i), callback_data=f'btn_test_q4_a{i}') for i in range(6, 11)]]
+            },
+            {
+                'text': "**Вопрос 6/10:**\nЕсть ли обиды?",
+                'buttons': [
+                    [InlineKeyboardButton("Да, много", callback_data='btn_test_q5_a1')],
+                    [InlineKeyboardButton("Есть немного", callback_data='btn_test_q5_a2')],
+                    [InlineKeyboardButton("Почти нет", callback_data='btn_test_q5_a3')],
+                    [InlineKeyboardButton("Нет обид", callback_data='btn_test_q5_a4')]
+                ]
+            },
+            {
+                'text': "**Вопрос 7/10:**\nЗнаете предназначение?",
+                'buttons': [
+                    [InlineKeyboardButton("Да, знаю", callback_data='btn_test_q6_a1')],
+                    [InlineKeyboardButton("Есть идеи", callback_data='btn_test_q6_a2')],
+                    [InlineKeyboardButton("Ищу", callback_data='btn_test_q6_a3')],
+                    [InlineKeyboardButton("Не знаю", callback_data='btn_test_q6_a4')]
+                ]
+            },
+            {
+                'text': "**Вопрос 8/10:**\nЧто придает смысл?",
+                'buttons': [
+                    [InlineKeyboardButton("Семья", callback_data='btn_test_q7_a1')],
+                    [InlineKeyboardButton("Работа", callback_data='btn_test_q7_a2')],
+                    [InlineKeyboardButton("Духовность", callback_data='btn_test_q7_a3')],
+                    [InlineKeyboardButton("Пока не знаю", callback_data='btn_test_q7_a4')]
+                ]
+            },
+            {
+                'text': "**Вопрос 9/10:**\nЛюбовь к себе?",
+                'buttons': [[InlineKeyboardButton(str(i), callback_data=f'btn_test_q8_a{i}') for i in range(1, 6)],
+                           [InlineKeyboardButton(str(i), callback_data=f'btn_test_q8_a{i}') for i in range(6, 11)]]
+            },
+            {
+                'text': "**Вопрос 10/10:**\nСвободны быть собой?",
+                'buttons': [
+                    [InlineKeyboardButton("Да, полностью", callback_data='btn_test_q9_a1')],
+                    [InlineKeyboardButton("В основном да", callback_data='btn_test_q9_a2')],
+                    [InlineKeyboardButton("Не всегда", callback_data='btn_test_q9_a3')],
+                    [InlineKeyboardButton("Нет", callback_data='btn_test_q9_a4')]
+                ]
+            }
+        ]
+        
+        if question_num < len(questions_with_buttons):
+            q = questions_with_buttons[question_num]
+            reply_markup = InlineKeyboardMarkup(q['buttons'])
+            
+            if update.callback_query:
+                await update.callback_query.edit_message_text(
+                    q['text'],
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                await update.message.reply_text(
+                    q['text'],
+                    reply_markup=reply_markup,
+                    parse_mode=ParseMode.MARKDOWN
+                )
+    
+    async def handle_button_test_answer(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+        """Обработка ответов из кнопок"""
+        query = update.callback_query
+        await query.answer()
+        
+        user = update.effective_user
+        data = query.data
+        
+        # Парсим callback_data: btn_test_q{N}_a{answer}
+        if not data.startswith('btn_test_'):
+            return
+        
+        parts = data.split('_')
+        question_num = int(parts[2][1:])  # q0 -> 0
+        answer = parts[3]  # a1, a2, etc
+        
+        # Сохраняем ответ
+        if user.id not in self.button_test_data:
+            self.button_test_data[user.id] = {'answers': [], 'current_question': 0}
+        
+        self.button_test_data[user.id]['answers'].append(answer)
+        self.button_test_data[user.id]['current_question'] = question_num + 1
+        
+        # Проверяем, все ли вопросы отвечены
+        if question_num >= 9:  # 10-й вопрос (индекс 9)
+            await query.edit_message_text(
+                "✅ Отлично! Все ответы получены.\n\n"
+                "🔮 Провожу анализ вашей самооценки...\n"
+                "⏱️ Это займет 30-60 секунд."
+            )
+            
+            # Анализируем
+            answers = self.button_test_data[user.id]['answers']
+            
+            try:
+                analysis = await self._analyze_self_esteem_simple(user.id, answers)
+                await update.effective_chat.send_message(analysis, parse_mode=ParseMode.MARKDOWN)
+                
+                # Сохраняем в БД
+                await self.database.save_analysis(
+                    user.id,
+                    user.first_name or f"User_{user.id}",
+                    'self_esteem_buttons',
+                    {'answers': answers, 'analysis': analysis}
+                )
+                
+            except Exception as e:
+                logger.error(f"Ошибка анализа кнопочного теста: {e}", exc_info=True)
+                await update.effective_chat.send_message(
+                    "😔 Ошибка при анализе. Попробуйте /start"
+                )
+            
+            # Очищаем данные
+            self.button_test_data.pop(user.id, None)
+        else:
+            # Показываем следующий вопрос
+            await self._show_button_question(update, question_num + 1)
+    
+    async def _analyze_self_esteem_simple(self, user_id: int, answers: list) -> str:
+        """Упрощенный анализ самооценки для кнопочного теста"""
+        answers_text = "\n".join([f"{i+1}. {ans}" for i, ans in enumerate(answers)])
+        
+        prompt = f"""Проанализируй результаты теста самооценки на основе книги "Восхождение".
+
+ОТВЕТЫ:
+{answers_text}
+
+Дай краткий анализ (300-400 слов):
+📊 Уровень самооценки (1-10)
+💎 Сильные стороны
+⚠️ Что развивать
+🎯 Рекомендации из книги "Восхождение"
+
+Принципы: "Для меня создан мир", самоуважение через осознание ценности."""
+
+        return await self.ai_client.get_direct_response(prompt, user_id)
