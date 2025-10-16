@@ -5,7 +5,7 @@
 import logging
 from typing import Dict, Any, Optional
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 
 from ai.adaptive_prompt_manager import PromptType
@@ -24,12 +24,10 @@ class AnalysisHandler:
         """Начало теста самооценки"""
         user = update.effective_user
         
-        # Инициализация данных пользователя
-        self.user_data[user.id] = {
-            'test_type': 'self_esteem',
-            'answers': [],
-            'current_question': 0
-        }
+        # Инициализация данных пользователя в context (важно для ConversationHandler!)
+        context.user_data['test_type'] = 'self_esteem'
+        context.user_data['answers'] = []
+        context.user_data['current_question'] = 0
         
         intro_text = """
 📖 **ТЕСТ САМООЦЕНКИ | "Восхождение"**
@@ -67,25 +65,23 @@ class AnalysisHandler:
         user = update.effective_user
         text = update.message.text.strip()
         
-        if not text or len(text) < 3:
+        if not text or len(text) < 1:
             await update.message.reply_text(
-                "Пожалуйста, дайте более развернутый ответ (минимум 3 символа)."
+                "Пожалуйста, дайте ответ."
             )
             return 'SELF_ESTEEM_Q'
         
-        # Сохраняем ответ
-        user_data = self.user_data.get(user.id, {})
-        answers = user_data.get('answers', [])
-        current_q = user_data.get('current_question', 0)
+        # Получаем данные из context (важно для ConversationHandler!)
+        answers = context.user_data.get('answers', [])
+        current_q = context.user_data.get('current_question', 0)
         
+        # Сохраняем ответ
         answers.append(text)
         current_q += 1
         
-        self.user_data[user.id] = {
-            'test_type': 'self_esteem',
-            'answers': answers,
-            'current_question': current_q
-        }
+        # Обновляем context
+        context.user_data['answers'] = answers
+        context.user_data['current_question'] = current_q
         
         # Проверяем, закончились ли вопросы (10 вопросов для упрощенного теста)
         if current_q >= 10:
@@ -105,8 +101,8 @@ class AnalysisHandler:
                     "😔 Извините, произошла ошибка при анализе.\n\n"
                     "Попробуйте позже или напишите /start для начала заново."
                 )
-                self.user_data.pop(user.id, None)
-                return 'END'
+                context.user_data.clear()
+                return ConversationHandler.END
             
             analysis_result = analysis_result if analysis_result else "Анализ временно недоступен."
             
@@ -126,8 +122,8 @@ class AnalysisHandler:
             )
             
             # Очищаем данные
-            self.user_data.pop(user.id, None)
-            return 'END'
+            context.user_data.clear()
+            return ConversationHandler.END
         
         # Следующий вопрос
         next_question = self._get_next_question(current_q)
@@ -149,12 +145,10 @@ class AnalysisHandler:
             )
             return 'WAITING_MESSAGE'
         
-        # Инициализация данных
-        self.user_data[user.id] = {
-            'test_type': 'full_analysis',
-            'answers': [],
-            'current_question': 0
-        }
+        # Инициализация данных в context
+        context.user_data['test_type'] = 'full_analysis'
+        context.user_data['answers'] = []
+        context.user_data['current_question'] = 0
         
         professional_questions = [
             "Расскажите о вашем детстве. Какие воспоминания формировали ваш характер?",
@@ -188,18 +182,16 @@ class AnalysisHandler:
             )
             return context.user_data.get('current_question', 'Q1')
         
-        user_data = self.user_data.get(user.id, {})
-        answers = user_data.get('answers', [])
-        current_q = user_data.get('current_question', 0)
+        # Получаем данные из context
+        answers = context.user_data.get('answers', [])
+        current_q = context.user_data.get('current_question', 0)
         
         answers.append(text)
         current_q += 1
         
-        self.user_data[user.id] = {
-            'test_type': 'full_analysis',
-            'answers': answers,
-            'current_question': current_q
-        }
+        # Обновляем context
+        context.user_data['answers'] = answers
+        context.user_data['current_question'] = current_q
         
         professional_questions = [
             "Расскажите о вашем детстве. Какие воспоминания формировали ваш характер?",
@@ -250,8 +242,8 @@ class AnalysisHandler:
             )
             
             # Очищаем данные
-            self.user_data.pop(user.id, None)
-            return 'END'
+            context.user_data.clear()
+            return ConversationHandler.END
     
     async def _analyze_self_esteem(self, user_id: int, answers: list) -> str:
         """Анализ самооценки через ИИ"""
