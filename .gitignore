@@ -184,3 +184,6 @@ config/local.yaml
 # OS specific
 .DS_Store
 Thumbs.db
+
+# PDF files
+*.pdf
