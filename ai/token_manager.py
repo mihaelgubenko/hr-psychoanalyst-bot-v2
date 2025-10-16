@@ -2,7 +2,6 @@
 Менеджер токенов для оптимизации использования OpenAI API
 """
 
-import tiktoken
 import logging
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -22,9 +21,14 @@ class TokenManager:
     
     def __init__(self, config):
         self.config = config
+        # Пытаемся импортировать и инициализировать tiktoken
         try:
+            import tiktoken
             self.encoding = tiktoken.get_encoding("cl100k_base")
             logger.info("Tiktoken успешно инициализирован")
+        except ImportError:
+            logger.warning("Tiktoken не установлен. Используется fallback подсчет токенов.")
+            self.encoding = None
         except Exception as e:
             logger.warning(f"Не удалось инициализировать tiktoken: {e}. Используется fallback.")
             self.encoding = None
