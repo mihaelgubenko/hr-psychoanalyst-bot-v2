@@ -26,7 +26,7 @@ def setup_logging(config: BotConfig):
     handlers = [logging.StreamHandler(sys.stdout)]
     
     # Добавляем файловый обработчик только если указан файл
-    log_file = config.get('log_file')
+    log_file = getattr(config, 'log_file', None)
     if log_file:
         try:
             # Создаем папку для логов если нужно
@@ -58,6 +58,7 @@ class BotApplication:
         
     async def initialize(self) -> bool:
         """Инициализация приложения"""
+        logger = None
         try:
             # Загрузка конфигурации
             self.config = BotConfig.from_yaml("config/settings.yaml")
@@ -66,7 +67,7 @@ class BotApplication:
             setup_logging(self.config)
             logger = logging.getLogger(__name__)
             
-            logger.info(f"Инициализация HR-Психоаналитик Бота v{self.config.get('version', '2.0')}")
+            logger.info(f"Инициализация HR-Психоаналитик Бота v{getattr(self.config, 'version', '2.0')}")
             
             # Инициализация базы данных
             self.database = DatabaseManager(self.config)
@@ -81,10 +82,9 @@ class BotApplication:
             return True
             
         except Exception as e:
-            try:
-                logger = logging.getLogger(__name__)
+            if logger:
                 logger.error(f"Ошибка инициализации: {e}")
-            except:
+            else:
                 print(f"Ошибка инициализации: {e}")
             return False
     
