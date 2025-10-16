@@ -23,13 +23,23 @@ def setup_logging(config: BotConfig):
     """Настройка системы логирования"""
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
+    handlers = [logging.StreamHandler(sys.stdout)]
+    
+    # Добавляем файловый обработчик только если указан файл
+    log_file = config.get('log_file')
+    if log_file:
+        try:
+            # Создаем папку для логов если нужно
+            log_path = Path(log_file)
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+            handlers.append(logging.FileHandler(log_file))
+        except Exception as e:
+            print(f"Не удалось создать файловый обработчик логов: {e}")
+    
     logging.basicConfig(
         level=getattr(logging, config.log_level),
         format=log_format,
-        handlers=[
-            logging.StreamHandler(sys.stdout),
-            logging.FileHandler(config.log_file) if config.log_file else logging.NullHandler()
-        ]
+        handlers=handlers
     )
     
     # Настройка логирования для внешних библиотек
@@ -71,8 +81,11 @@ class BotApplication:
             return True
             
         except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Ошибка инициализации: {e}")
+            try:
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка инициализации: {e}")
+            except:
+                print(f"Ошибка инициализации: {e}")
             return False
     
     async def start(self) -> bool:
@@ -95,8 +108,11 @@ class BotApplication:
             return True
             
         except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Ошибка запуска: {e}")
+            try:
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка запуска: {e}")
+            except:
+                print(f"Ошибка запуска: {e}")
             return False
     
     async def stop(self) -> bool:
@@ -115,8 +131,11 @@ class BotApplication:
             return True
             
         except Exception as e:
-            logger = logging.getLogger(__name__)
-            logger.error(f"Ошибка остановки: {e}")
+            try:
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка остановки: {e}")
+            except:
+                print(f"Ошибка остановки: {e}")
             return False
     
     def _setup_signal_handlers(self):

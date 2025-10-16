@@ -59,11 +59,11 @@ logging:
   level: "INFO"
   format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
   
-  # Файлы логов
+  # Файлы логов (отключены для Railway)
   files:
-    main: "logs/bot.log"
-    errors: "logs/errors.log"
-    access: "logs/access.log"
+    main: null  # Используем stdout
+    errors: null
+    access: null
 
 security:
   # Настройки безопасности
