@@ -5,7 +5,7 @@
 import logging
 from typing import Dict, Any, Optional
 from telegram import Update
-from telegram.ext import Application, ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler as TGMessageHandler, ConversationHandler, filters
+from telegram.ext import Application, ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler as TGMessageHandler, ConversationHandler, CallbackQueryHandler, filters
 
 # Импорт BotConfig будет сделан локально, чтобы избежать циклических импортов
 from bot.database import DatabaseManager
@@ -55,6 +55,9 @@ class HRPsychoanalystBot:
         self.application.add_handler(CommandHandler('clear', self.message_handler.clear_memory))
         self.application.add_handler(CommandHandler('stats', self.message_handler.get_stats))
         self.application.add_handler(CommandHandler('optimize', self.message_handler.optimize_user))
+        
+        # Обработчик нажатий на кнопки (InlineKeyboard)
+        self.application.add_handler(CallbackQueryHandler(self.message_handler.handle_button_click))
         
         # Обработчик сообщений
         self.application.add_handler(
