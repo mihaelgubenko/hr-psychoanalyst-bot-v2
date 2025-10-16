@@ -71,16 +71,16 @@ class HRPsychoanalystBot:
         
         # Обработчик для полного анализа
         full_analysis_handler = ConversationHandler(
-            entry_points=[MessageHandler(filters.Regex(r'полный анализ|детальный анализ'), 
+            entry_points=[TGMessageHandler(filters.Regex(r'полный анализ|детальный анализ'), 
                                        self.analysis_handler.start_full_analysis)],
             states={
-                'Q1': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q2': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q3': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q4': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q5': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q6': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
-                'Q7': [MessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q1': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q2': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q3': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q4': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q5': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q6': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
+                'Q7': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_full_analysis_answer)],
             },
             fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
             allow_reentry=True
@@ -90,7 +90,7 @@ class HRPsychoanalystBot:
         self_esteem_handler = ConversationHandler(
             entry_points=[CommandHandler('self_esteem', self.analysis_handler.start_self_esteem_test)],
             states={
-                'SELF_ESTEEM_Q': [MessageHandler(filters.TEXT, self.analysis_handler.handle_self_esteem_answer)]
+                'SELF_ESTEEM_Q': [TGMessageHandler(filters.TEXT, self.analysis_handler.handle_self_esteem_answer)]
             },
             fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
             allow_reentry=True
