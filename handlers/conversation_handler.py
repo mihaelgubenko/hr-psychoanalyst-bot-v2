@@ -84,6 +84,19 @@ class BotConversationHandler:
             # Отправляем ответ
             await self._send_response(update, response)
             
+            # Добавляем кнопку отмены под ответом
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            
+            cancel_keyboard = [
+                [InlineKeyboardButton("❌ Завершить консультацию", callback_data='end_consultation')],
+                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+            ]
+            
+            await update.message.reply_text(
+                "─────────────────",
+                reply_markup=InlineKeyboardMarkup(cancel_keyboard)
+            )
+            
             # FOLLOW-UP РЕЖИМ: Уменьшаем счетчик бесплатных вопросов
             if context.user_data.get('followup_mode'):
                 free_q = context.user_data.get('free_questions', 0)

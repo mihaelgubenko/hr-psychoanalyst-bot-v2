@@ -523,9 +523,14 @@ class AnalysisHandler:
             progress_bar = "━" * progress_filled + "○" + "━" * (10 - progress_filled - 1)
             progress_text = f"\n\n{progress_bar}  {question_num}/10 ({progress_filled * 10}%)"
             
-            # Добавляем кнопку отмены
-            buttons_with_cancel = q['buttons'] + [[InlineKeyboardButton("❌ Отменить тест", callback_data='cancel_test')]]
-            reply_markup = InlineKeyboardMarkup(buttons_with_cancel)
+            # Добавляем кнопки навигации
+            nav_buttons = []
+            if question_num > 0:  # Кнопка "Назад" только если не первый вопрос
+                nav_buttons.append(InlineKeyboardButton("⬅️ Назад", callback_data=f'back_to_q{question_num-1}'))
+            nav_buttons.append(InlineKeyboardButton("❌ Отменить", callback_data='cancel_test'))
+            
+            buttons_with_nav = q['buttons'] + [nav_buttons]
+            reply_markup = InlineKeyboardMarkup(buttons_with_nav)
             
             full_text = q['text'] + progress_text
             
@@ -561,6 +566,21 @@ class AnalysisHandler:
                 "/consultation - Консультация"
             )
             self.button_test_data.pop(user.id, None)
+            return
+        
+        # Проверка на возврат назад
+        if data.startswith('back_to_q'):
+            prev_question = int(data.split('back_to_q')[1])
+            
+            # Удаляем последний ответ
+            if user.id in self.button_test_data:
+                answers = self.button_test_data[user.id]['answers']
+                if len(answers) > prev_question:
+                    self.button_test_data[user.id]['answers'] = answers[:prev_question]
+                    self.button_test_data[user.id]['current_question'] = prev_question
+            
+            # Показываем предыдущий вопрос
+            await self._show_button_question(update, prev_question)
             return
         
         # Парсим callback_data: btn_test_q{N}_a{answer}

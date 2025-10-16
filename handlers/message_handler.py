@@ -318,10 +318,23 @@ class MessageHandler:
         
         data = query.data
         
-        # Проверяем, это кнопки теста или отмена?
-        if data.startswith('btn_test_') or data == 'cancel_test':
+        # Проверяем, это кнопки теста, отмена или возврат?
+        if data.startswith('btn_test_') or data == 'cancel_test' or data.startswith('back_to_q'):
             if hasattr(self, 'analysis_handler'):
                 await self.analysis_handler.handle_button_test_answer(update, context)
+            return
+        
+        # Завершение консультации
+        if data == 'end_consultation':
+            context.user_data.clear()
+            await query.edit_message_text(
+                "✅ **КОНСУЛЬТАЦИЯ ЗАВЕРШЕНА**\n\n"
+                "Спасибо за доверие!\n\n"
+                "Что делать дальше?\n"
+                "/start - Главное меню\n"
+                "/test - Тест самооценки",
+                parse_mode=ParseMode.MARKDOWN
+            )
             return
         
         # Follow-up кнопки после теста
