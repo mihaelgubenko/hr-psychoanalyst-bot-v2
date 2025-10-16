@@ -141,7 +141,7 @@ class TokenMonitor:
         max_tokens = user_limits["max_tokens"]
         
         # Резервируем место для ответа
-        available_tokens = max_tokens - self.config.RESPONSE_TOKENS
+        available_tokens = max_tokens - getattr(self.config, 'response_tokens', 1000)
         
         total_estimated = history_tokens + new_message_tokens
         
@@ -171,7 +171,7 @@ class TokenMonitor:
         if context_length > 15:
             optimal_limit = max(optimal_limit - 500, self.config.MIN_TOKENS)
         elif context_length < 5:
-            optimal_limit = min(optimal_limit + 300, self.config.MAX_TOKENS + 500)
+            optimal_limit = min(optimal_limit + 300, getattr(self.config, 'max_tokens', 4000) + 500)
         
         return optimal_limit
     
@@ -381,7 +381,7 @@ class TokenMonitor:
             if truncation_rate > self.alert_thresholds['high_truncation_rate']:
                 alerts.append(f"Высокий процент обрезанных ответов: {truncation_rate:.1%}")
             
-            if self.usage_stats.avg_tokens_per_request > self.config.MAX_TOKENS * 0.8:
+            if self.usage_stats.avg_tokens_per_request > getattr(self.config, 'max_tokens', 4000) * 0.8:
                 alerts.append("Высокое среднее потребление токенов")
         
         return alerts

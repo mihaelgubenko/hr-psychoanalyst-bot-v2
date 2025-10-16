@@ -65,7 +65,8 @@ class TokenManager:
         if context_length > 10:
             base_estimate = min(base_estimate + 200, 1000)
         
-        return min(base_estimate, self.config.RESPONSE_TOKENS)
+        response_tokens = getattr(self.config, 'response_tokens', 1000)
+        return min(base_estimate, response_tokens)
     
     def calculate_available_tokens(self, prompt: str, context: str, user_type: str = "free") -> int:
         """Расчет доступных токенов для ответа"""
@@ -77,7 +78,7 @@ class TokenManager:
         max_tokens = user_limits["max_tokens"]
         
         # Резервируем место для ответа
-        available_for_prompt = max_tokens - self.config.RESPONSE_TOKENS
+        available_for_prompt = max_tokens - getattr(self.config, 'response_tokens', 1000)
         
         # Если промпт + контекст превышают лимит
         if prompt_tokens + context_tokens > available_for_prompt:
@@ -98,7 +99,7 @@ class TokenManager:
         max_tokens = adaptive_limits["max_tokens"]
         
         # Резервируем место для ответа
-        available_for_prompt = max_tokens - self.config.RESPONSE_TOKENS
+        available_for_prompt = max_tokens - getattr(self.config, 'response_tokens', 1000)
         
         # Если все помещается
         if prompt_tokens + context_tokens <= available_for_prompt:
@@ -107,8 +108,8 @@ class TokenManager:
             
             return prompt, context, TokenUsage(
                 prompt_tokens=prompt_tokens,
-                completion_tokens=self.config.RESPONSE_TOKENS,
-                total_tokens=total_tokens + self.config.RESPONSE_TOKENS,
+                completion_tokens=getattr(self.config, 'response_tokens', 1000),
+                total_tokens=total_tokens + getattr(self.config, 'response_tokens', 1000),
                 estimated_cost=estimated_cost
             )
         
@@ -128,8 +129,8 @@ class TokenManager:
         
         return prompt, compressed_context, TokenUsage(
             prompt_tokens=prompt_tokens,
-            completion_tokens=self.config.RESPONSE_TOKENS,
-            total_tokens=final_tokens + self.config.RESPONSE_TOKENS,
+            completion_tokens=getattr(self.config, 'response_tokens', 1000),
+            total_tokens=final_tokens + getattr(self.config, 'response_tokens', 1000),
             estimated_cost=estimated_cost
         )
     
