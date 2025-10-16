@@ -1,15 +1,12 @@
 """
 Ядро системы HR-Психоаналитик Бота v2.0
-Основные компоненты для управления токенами и обработки
+Основной бот и его компоненты
 """
 
-# Убираем импорт HRPsychoanalystBot чтобы избежать циклических импортов
-from .token_manager import TokenManager
-from .context_compressor import ContextCompressor
-from .response_cache import ResponseCache
+# Пустой __init__ - импорты удалены чтобы избежать дублирования
+# Используйте модули из ai/ директории:
+# - ai.token_manager
+# - ai.context_compressor
+# - ai.response_cache
 
-__all__ = [
-    'TokenManager', 
-    'ContextCompressor',
-    'ResponseCache'
-]
+__all__ = []
