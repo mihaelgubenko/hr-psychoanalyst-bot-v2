@@ -5,7 +5,7 @@
 import logging
 from typing import Dict, Any, Optional
 from telegram import Update
-from telegram.ext import ContextTypes
+from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 
 logger = logging.getLogger(__name__)
@@ -82,16 +82,33 @@ class MessageHandler:
         await update.message.reply_text(help_text, parse_mode=ParseMode.MARKDOWN)
     
     async def cancel(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-        """Обработчик команды /cancel"""
+        """Обработчик команды /cancel - работает везде"""
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
         user = update.effective_user
         
-        # Очищаем данные пользователя
+        # Очищаем ВСЕ данные
         self.ai_client.clear_user_data(user.id)
+        context.user_data.clear()
+        
+        # Очищаем тест с кнопками если активен
+        if hasattr(self, 'analysis_handler'):
+            self.analysis_handler.button_test_data.pop(user.id, None)
+        
+        keyboard = [
+            [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
+            [InlineKeyboardButton("📊 Тест самооценки", callback_data='test_samoocenka')],
+            [InlineKeyboardButton("💬 Консультация", callback_data='consultation')]
+        ]
         
         await update.message.reply_text(
-            "Анализ отменен. Для нового анализа используйте /start"
+            "❌ **ОТМЕНЕНО**\n\n"
+            "Все данные очищены.\n\n"
+            "Что делать дальше?",
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode=ParseMode.MARKDOWN
         )
-        return 'END'
+        return ConversationHandler.END
     
     async def reset_bot(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         """Обработчик команды /reset"""
@@ -301,10 +318,33 @@ class MessageHandler:
         
         data = query.data
         
-        # Проверяем, это кнопки теста?
-        if data.startswith('btn_test_'):
+        # Проверяем, это кнопки теста или отмена?
+        if data.startswith('btn_test_') or data == 'cancel_test':
             if hasattr(self, 'analysis_handler'):
                 await self.analysis_handler.handle_button_test_answer(update, context)
+            return
+        
+        # Follow-up кнопки после теста
+        if data == 'followup_start':
+            await query.edit_message_text(
+                f"💬 **ДОПОЛНИТЕЛЬНЫЕ ВОПРОСЫ**\n\n"
+                f"У вас есть **{context.user_data.get('free_questions', 10)} бесплатных вопросов** по результату теста.\n\n"
+                f"Просто напишите свой вопрос, и я отвечу! 📝",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        if data == 'test_restart':
+            await query.edit_message_text("🔄 Перезапускаю тест...\n\nИспользуйте: /test")
+            return
+        
+        if data == 'main_menu':
+            # Возврат в главное меню
+            context.user_data.clear()
+            await query.edit_message_text(
+                "🏠 Возвращаю вас в главное меню...\n\nИспользуйте: /start",
+                parse_mode=ParseMode.MARKDOWN
+            )
             return
         
         if data == 'test_samoocenka':

@@ -517,17 +517,27 @@ class AnalysisHandler:
         
         if question_num < len(questions_with_buttons):
             q = questions_with_buttons[question_num]
-            reply_markup = InlineKeyboardMarkup(q['buttons'])
+            
+            # Добавляем прогресс бар
+            progress_filled = int((question_num / 10) * 10)
+            progress_bar = "━" * progress_filled + "○" + "━" * (10 - progress_filled - 1)
+            progress_text = f"\n\n{progress_bar}  {question_num}/10 ({progress_filled * 10}%)"
+            
+            # Добавляем кнопку отмены
+            buttons_with_cancel = q['buttons'] + [[InlineKeyboardButton("❌ Отменить тест", callback_data='cancel_test')]]
+            reply_markup = InlineKeyboardMarkup(buttons_with_cancel)
+            
+            full_text = q['text'] + progress_text
             
             if update.callback_query:
                 await update.callback_query.edit_message_text(
-                    q['text'],
+                    full_text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.MARKDOWN
                 )
             else:
                 await update.message.reply_text(
-                    q['text'],
+                    full_text,
                     reply_markup=reply_markup,
                     parse_mode=ParseMode.MARKDOWN
                 )
@@ -539,6 +549,19 @@ class AnalysisHandler:
         
         user = update.effective_user
         data = query.data
+        
+        # Проверка на отмену
+        if data == 'cancel_test':
+            await query.edit_message_text(
+                "❌ **ТЕСТ ОТМЕНЕН**\n\n"
+                "Ваши ответы не сохранены.\n\n"
+                "Что делать дальше?\n"
+                "/start - Главное меню\n"
+                "/test - Начать тест заново\n"
+                "/consultation - Консультация"
+            )
+            self.button_test_data.pop(user.id, None)
+            return
         
         # Парсим callback_data: btn_test_q{N}_a{answer}
         if not data.startswith('btn_test_'):
@@ -559,9 +582,12 @@ class AnalysisHandler:
         if question_num >= 9:  # 10-й вопрос (индекс 9)
             await query.edit_message_text(
                 "✅ Отлично! Все ответы получены.\n\n"
-                "🔮 Провожу анализ вашей самооценки...\n"
-                "⏱️ Это займет 30-60 секунд."
+                "🔮 Провожу глубокий психоанализ...\n"
+                "⏱️ 30-60 секунд"
             )
+            
+            # Показываем typing action
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
             
             # Анализируем
             answers = self.button_test_data[user.id]['answers']
@@ -578,13 +604,36 @@ class AnalysisHandler:
                     {'answers': answers, 'analysis': analysis}
                 )
                 
+                # FOLLOW-UP: Предлагаем дополнительные вопросы
+                from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                
+                followup_keyboard = [
+                    [InlineKeyboardButton("💬 Задать вопрос по результату", callback_data='followup_start')],
+                    [InlineKeyboardButton("🔄 Пройти тест заново", callback_data='test_restart')],
+                    [InlineKeyboardButton("👤 Личная консультация", callback_data='personal')],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+                ]
+                
+                await update.effective_chat.send_message(
+                    "✨ **ЧТО ДАЛЬШЕ?**\n\n"
+                    "У вас есть **10 бесплатных вопросов** по результату теста.\n\n"
+                    "Выберите действие:",
+                    reply_markup=InlineKeyboardMarkup(followup_keyboard),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                
+                # Устанавливаем счетчик вопросов
+                context.user_data['followup_mode'] = True
+                context.user_data['free_questions'] = 10
+                context.user_data['test_result'] = analysis
+                
             except Exception as e:
                 logger.error(f"Ошибка анализа кнопочного теста: {e}", exc_info=True)
                 await update.effective_chat.send_message(
                     "😔 Ошибка при анализе. Попробуйте /start"
                 )
             
-            # Очищаем данные
+            # Очищаем данные теста
             self.button_test_data.pop(user.id, None)
         else:
             # Показываем следующий вопрос

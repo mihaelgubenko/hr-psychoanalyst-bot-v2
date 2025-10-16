@@ -72,13 +72,69 @@ class BotConversationHandler:
         
         # Получаем ответ от ИИ
         try:
+            # Показываем, что бот думает
+            thinking_msg = await update.message.reply_text("🤔 Думаю...")
+            await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
+            
             response = await self._get_ai_response(user.id, text, response_type)
+            
+            # Удаляем индикатор
+            await thinking_msg.delete()
             
             # Отправляем ответ
             await self._send_response(update, response)
             
-            # Предлагаем дополнительные опции
-            await self._suggest_next_steps(update, patterns, len(self.conversation_history[user.id]))
+            # FOLLOW-UP РЕЖИМ: Уменьшаем счетчик бесплатных вопросов
+            if context.user_data.get('followup_mode'):
+                free_q = context.user_data.get('free_questions', 0)
+                if free_q > 0:
+                    free_q -= 1
+                    context.user_data['free_questions'] = free_q
+                    
+                    if free_q > 0:
+                        await update.message.reply_text(
+                            f"💡 Осталось бесплатных вопросов: **{free_q}/10**",
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                    else:
+                        # Закончились вопросы
+                        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                        
+                        keyboard = [
+                            [InlineKeyboardButton("👤 Личная консультация", callback_data='personal')],
+                            [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+                        ]
+                        
+                        await update.message.reply_text(
+                            "⚠️ **Бесплатные вопросы закончились (10/10)**\n\n"
+                            "Хотите продолжить глубокую работу?\n\n"
+                            "💎 **Личная консультация:**\n"
+                            "• Неограниченные вопросы\n"
+                            "• Персональный план\n"
+                            "• Глубокий разбор\n\n"
+                            "От 2000₽",
+                            reply_markup=InlineKeyboardMarkup(keyboard),
+                            parse_mode=ParseMode.MARKDOWN
+                        )
+                        context.user_data.pop('followup_mode', None)
+                else:
+                    # Уже 0 вопросов
+                    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                    
+                    keyboard = [
+                        [InlineKeyboardButton("👤 Записаться", callback_data='personal')],
+                        [InlineKeyboardButton("🏠 Меню", callback_data='main_menu')]
+                    ]
+                    
+                    await update.message.reply_text(
+                        "⚠️ Бесплатные вопросы закончились.\n\n"
+                        "Для продолжения нужна личная консультация.",
+                        reply_markup=InlineKeyboardMarkup(keyboard)
+                    )
+                    return 'WAITING_MESSAGE'
+            else:
+                # Обычный режим - предлагаем следующие шаги
+                await self._suggest_next_steps(update, patterns, len(self.conversation_history[user.id]))
             
         except Exception as e:
             logger.error(f"Ошибка получения ответа ИИ: {e}")
