@@ -29,10 +29,6 @@ class BotConversationHandler:
             await update.message.reply_text("Пожалуйста, напишите что-то конкретное.")
             return 'WAITING_MESSAGE'
         
-        # ПРОВЕРКА: Ждем ли ответы на быстрый тест?
-        if context.user_data.get('waiting_for') == 'quick_test_answers':
-            return await self._handle_quick_test_answers(update, context, text)
-        
         # Инициализируем историю пользователя
         if user.id not in self.conversation_history:
             self.conversation_history[user.id] = []
@@ -306,56 +302,3 @@ class BotConversationHandler:
         )
         return 'WAITING_MESSAGE'
     
-    async def _handle_quick_test_answers(self, update: Update, context: ContextTypes.DEFAULT_TYPE, text: str) -> str:
-        """Обработка ответов на быстрый тест"""
-        user = update.effective_user
-        
-        await update.message.reply_text(
-            "✅ Получил ваши ответы!\n\n"
-            "🔮 Провожу анализ...\n"
-            "⏱️ 30-60 секунд."
-        )
-        
-        try:
-            prompt = f"""Анализ теста самооценки (книга "Восхождение"):
-
-ОТВЕТЫ:
-{text}
-
-ВОПРОСЫ:
-1. Ценность (1-10)?
-2. Довольны собой?
-3. Верите в способности?
-4. Какие страхи?
-5. Как часто гнев?
-6. Есть обиды?
-7. Знаете предназначение?
-8. Что придает смысл?
-9. Любовь к себе?
-10. Свободны быть собой?
-
-АНАЛИЗ:
-📊 Уровень (1-10)
-💎 Сильные стороны
-⚠️ Что развивать
-🎯 Рекомендации из "Восхождение"
-✨ Упражнения
-
-Принципы: "Для меня создан мир", самоуважение, силы."""
-
-            analysis = await self.ai_client.get_direct_response(prompt, user.id)
-            await update.message.reply_text(analysis, parse_mode=ParseMode.MARKDOWN)
-            
-            await self.database.save_analysis(
-                user.id, user.first_name or f"User_{user.id}",
-                'quick_test', {'answers': text, 'analysis': analysis}
-            )
-            
-            context.user_data.pop('waiting_for', None)
-            
-        except Exception as e:
-            logger.error(f"Ошибка: {e}", exc_info=True)
-            await update.message.reply_text("😔 Ошибка. /start")
-            context.user_data.pop('waiting_for', None)
-        
-        return 'WAITING_MESSAGE'

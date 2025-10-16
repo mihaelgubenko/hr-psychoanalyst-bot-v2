@@ -50,11 +50,12 @@ class HRPsychoanalystBot:
         self.application.add_handler(CommandHandler('cancel', self.message_handler.cancel))
         self.application.add_handler(CommandHandler('reset', self.message_handler.reset_bot))
         
-        # Анализ и консультации - 3 варианта теста!
-        self.application.add_handler(CommandHandler('self_esteem', self.analysis_handler.start_self_esteem_test))
-        self.application.add_handler(CommandHandler('test_quick', self.analysis_handler.start_quick_test))
-        self.application.add_handler(CommandHandler('test_buttons', self.analysis_handler.start_button_test))
-        self.application.add_handler(CommandHandler('consultation', self.message_handler.consultation_info))
+        # Только тест с кнопками (самый удобный!)
+        self.application.add_handler(CommandHandler('test', self.analysis_handler.start_button_test))
+        self.application.add_handler(CommandHandler('test_buttons', self.analysis_handler.start_button_test))  # Алиас
+        
+        # Консультация
+        self.application.add_handler(CommandHandler('consultation', self.message_handler.start_consultation))
         
         # Административные команды
         self.application.add_handler(CommandHandler('clear', self.message_handler.clear_memory))
@@ -76,45 +77,8 @@ class HRPsychoanalystBot:
     
     def _setup_conversation_handlers(self):
         """Настройка обработчиков состояний диалога"""
-        
-        from telegram.ext import ConversationHandler
-        
-        # Обработчик для полного анализа
-        full_analysis_handler = ConversationHandler(
-            entry_points=[TGMessageHandler(filters.Regex(r'полный анализ|детальный анализ'), 
-                                       self.analysis_handler.start_full_analysis)],
-            states={
-                'Q1': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q2': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q3': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q4': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q5': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q6': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-                'Q7': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_full_analysis_answer)],
-            },
-            fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
-            allow_reentry=True,
-            per_message=False,
-            per_chat=True,
-            per_user=True
-        )
-        
-        # Обработчик для теста самооценки
-        self_esteem_handler = ConversationHandler(
-            entry_points=[CommandHandler('self_esteem', self.analysis_handler.start_self_esteem_test)],
-            states={
-                'SELF_ESTEEM_Q': [TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.analysis_handler.handle_self_esteem_answer)]
-            },
-            fallbacks=[CommandHandler('cancel', self.message_handler.cancel)],
-            allow_reentry=True,
-            per_message=False,
-            per_chat=True,
-            per_user=True
-        )
-        
-        # Добавляем ConversationHandlers в группу 0 (высокий приоритет)
-        self.application.add_handler(full_analysis_handler, group=0)
-        self.application.add_handler(self_esteem_handler, group=0)
+        # ConversationHandler удалены - используем только кнопки и свободный диалог
+        pass
     
     async def start(self):
         """Запуск бота"""
