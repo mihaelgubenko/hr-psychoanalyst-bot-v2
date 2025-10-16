@@ -233,17 +233,26 @@ class BotConversationHandler:
         return ai_response.content
     
     async def _send_response(self, update: Update, response: str):
-        """Отправка ответа пользователю"""
+        """Отправка ответа пользователю с обработкой ошибок"""
         
-        # Разбиваем длинный ответ на части
-        max_length = 4000
-        if len(response) <= max_length:
-            await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
-        else:
-            parts = [response[i:i+max_length] for i in range(0, len(response), max_length)]
-            for i, part in enumerate(parts):
-                prefix = f"**Ответ (часть {i+1}/{len(parts)}):**\n\n" if i > 0 else ""
-                await update.message.reply_text(prefix + part, parse_mode=ParseMode.MARKDOWN)
+        try:
+            # Разбиваем длинный ответ на части
+            max_length = 4000
+            if len(response) <= max_length:
+                await update.message.reply_text(response, parse_mode=ParseMode.MARKDOWN)
+            else:
+                parts = [response[i:i+max_length] for i in range(0, len(response), max_length)]
+                for i, part in enumerate(parts):
+                    prefix = f"**Ответ (часть {i+1}/{len(parts)}):**\n\n" if i > 0 else ""
+                    await update.message.reply_text(prefix + part, parse_mode=ParseMode.MARKDOWN)
+        except Exception as e:
+            # Если Markdown не работает, отправляем как обычный текст
+            logger.error(f"Ошибка отправки с Markdown: {e}")
+            try:
+                await update.message.reply_text(response)
+            except Exception as e2:
+                logger.error(f"Критическая ошибка отправки сообщения: {e2}")
+                await update.message.reply_text("😔 Извините, произошла ошибка при отправке ответа. Попробуйте еще раз.")
     
     async def _suggest_next_steps(self, update: Update, patterns: Dict[str, bool], message_count: int):
         """Предложение следующих шагов"""
