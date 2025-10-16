@@ -3,13 +3,12 @@
 Основные компоненты для управления токенами и обработки
 """
 
-from .bot import HRPsychoanalystBot
+# Убираем импорт HRPsychoanalystBot чтобы избежать циклических импортов
 from .token_manager import TokenManager
 from .context_compressor import ContextCompressor
 from .response_cache import ResponseCache
 
 __all__ = [
-    'HRPsychoanalystBot',
     'TokenManager', 
     'ContextCompressor',
     'ResponseCache'

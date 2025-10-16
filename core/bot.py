@@ -7,11 +7,11 @@ from typing import Dict, Any, Optional
 from telegram import Update
 from telegram.ext import Application, ApplicationBuilder, ContextTypes, CommandHandler, MessageHandler as TGMessageHandler, ConversationHandler, filters
 
-from bot.config import BotConfig as Config
+# Импорт BotConfig будет сделан локально, чтобы избежать циклических импортов
 from bot.database import DatabaseManager
 from ai.openai_client import OpenAIClient
 from ai.adaptive_prompt_manager import PromptType
-from handlers.message_handler import MessageHandler
+from handlers.message_handler import MessageHandler as BotMessageHandler
 from handlers.analysis_handler import AnalysisHandler
 from handlers.conversation_handler import ConversationHandler
 
@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 class HRPsychoanalystBot:
     """Основной класс HR-Психоаналитик бота"""
     
-    def __init__(self, config, database=None):
+    def __init__(self, config: Any, database=None):
         self.config = config
         self.db = DatabaseManager(config)
         self.ai_client = OpenAIClient(config)
         
         # Инициализируем обработчики
-        self.message_handler = MessageHandler(self.ai_client, self.db)
+        self.message_handler = BotMessageHandler(self.ai_client, self.db)
         self.analysis_handler = AnalysisHandler(self.ai_client, self.db)
         self.conversation_handler = ConversationHandler(self.ai_client, self.db)
         
@@ -58,7 +58,7 @@ class HRPsychoanalystBot:
         
         # Обработчик сообщений
         self.application.add_handler(
-            MessageHandler(filters.TEXT & ~filters.COMMAND, self.conversation_handler.handle_message)
+            TGMessageHandler(filters.TEXT & ~filters.COMMAND, self.conversation_handler.handle_message)
         )
         
         # Обработчики состояний для анализа

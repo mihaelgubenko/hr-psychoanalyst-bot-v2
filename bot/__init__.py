@@ -7,8 +7,8 @@ __version__ = "2.0.0"
 __author__ = "HR-Психоаналитик"
 __description__ = "Профессиональный HR-психоаналитик и карьерный консультант"
 
-from .main import main
+# Убираем импорт main чтобы избежать циклических импортов
 from .config import BotConfig
 from .database import DatabaseManager
 
-__all__ = ['main', 'BotConfig', 'DatabaseManager']
+__all__ = ['BotConfig', 'DatabaseManager']
