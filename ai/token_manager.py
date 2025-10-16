@@ -2,7 +2,7 @@
 Менеджер токенов для оптимизации использования OpenAI API
 """
 
-# import tiktoken  # Временно отключено из-за проблем с установкой
+import tiktoken
 import logging
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -22,8 +22,12 @@ class TokenManager:
     
     def __init__(self, config):
         self.config = config
-        # self.encoding = tiktoken.get_encoding("cl100k_base")  # Временно отключено
-        self.encoding = None
+        try:
+            self.encoding = tiktoken.get_encoding("cl100k_base")
+            logger.info("Tiktoken успешно инициализирован")
+        except Exception as e:
+            logger.warning(f"Не удалось инициализировать tiktoken: {e}. Используется fallback.")
+            self.encoding = None
         
         # Стоимость токенов для GPT-4 (примерная)
         self.token_costs = {
