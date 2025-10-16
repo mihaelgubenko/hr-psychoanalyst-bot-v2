@@ -94,8 +94,8 @@ class AnalysisHandler:
             )
             
             try:
-            # Анализ через ИИ
-            analysis_result = await self._analyze_self_esteem(user.id, answers)
+                # Анализ через ИИ
+                analysis_result = await self._analyze_self_esteem(user.id, answers)
             except Exception as e:
                 logger.error(f"Ошибка анализа самооценки: {e}", exc_info=True)
                 await update.message.reply_text(
