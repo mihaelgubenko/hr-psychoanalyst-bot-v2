@@ -1,0 +1,97 @@
+# Конфигурация HR-Психоаналитик Бота v2.0
+
+bot:
+  name: "HR-Психоаналитик"
+  version: "2.0"
+  description: "Профессиональный HR-психоаналитик и карьерный консультант"
+  
+  # Настройки токенов
+  max_tokens: 4000
+  context_window: 3000
+  response_tokens: 1000
+  min_tokens: 100
+  
+  # Настройки сообщений
+  max_message_length: 4000
+  max_conversation_length: 20
+  
+  # Настройки кэширования
+  cache_ttl: 3600  # 1 час
+  cache_size: 1000
+
+ai:
+  # Настройки моделей
+  models:
+    default: "gpt-4"
+    fallback: "gpt-3.5-turbo"
+    max_tokens: 4000
+    temperature: 0.7
+    timeout: 60
+  
+  # Настройки промптов
+  prompts:
+    max_length: 400
+    min_length: 100
+    adaptive: true
+  
+  # Настройки мониторинга
+  monitoring:
+    enabled: true
+    auto_optimization: true
+    alert_thresholds:
+      high_token_usage: 0.8
+      high_truncation_rate: 0.3
+      low_satisfaction: 3.0
+
+database:
+  # Настройки SQLite
+  path: "psychoanalyst.db"
+  timeout: 30
+  
+  # Настройки таблиц
+  tables:
+    clients: true
+    ab_tests: true
+    user_assignments: true
+
+logging:
+  # Настройки логирования
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  
+  # Файлы логов
+  files:
+    main: "logs/bot.log"
+    errors: "logs/errors.log"
+    access: "logs/access.log"
+
+security:
+  # Настройки безопасности
+  rate_limiting:
+    enabled: true
+    requests_per_minute: 10
+    burst_size: 20
+  
+  # Валидация
+  validation:
+    enabled: true
+    strict_mode: false
+
+features:
+  # Включенные функции
+  express_analysis: true
+  full_analysis: true
+  self_esteem_test: true
+  psychology_support: true
+  career_consultation: true
+  
+  # A/B тестирование
+  ab_testing:
+    enabled: true
+    min_samples: 10
+  
+  # Кэширование
+  caching:
+    enabled: true
+    ttl: 3600
+    max_size: 1000
