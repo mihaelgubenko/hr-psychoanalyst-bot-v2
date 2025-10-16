@@ -23,7 +23,17 @@ def setup_logging(config: BotConfig):
     """Настройка системы логирования"""
     log_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     
-    handlers = [logging.StreamHandler(sys.stdout)]
+    # Получаем корневой логгер
+    root_logger = logging.getLogger()
+    
+    # Очищаем существующие обработчики
+    root_logger.handlers.clear()
+    
+    # Создаем новый обработчик для stdout
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(logging.Formatter(log_format))
+    console_handler.setLevel(getattr(logging, config.log_level))
+    root_logger.addHandler(console_handler)
     
     # Добавляем файловый обработчик только если указан файл
     log_file = getattr(config, 'log_file', None)
@@ -32,15 +42,15 @@ def setup_logging(config: BotConfig):
             # Создаем папку для логов если нужно
             log_path = Path(log_file)
             log_path.parent.mkdir(parents=True, exist_ok=True)
-            handlers.append(logging.FileHandler(log_file))
+            file_handler = logging.FileHandler(log_file)
+            file_handler.setFormatter(logging.Formatter(log_format))
+            file_handler.setLevel(getattr(logging, config.log_level))
+            root_logger.addHandler(file_handler)
         except Exception as e:
             print(f"Не удалось создать файловый обработчик логов: {e}")
     
-    logging.basicConfig(
-        level=getattr(logging, config.log_level),
-        format=log_format,
-        handlers=handlers
-    )
+    # Устанавливаем уровень логирования
+    root_logger.setLevel(getattr(logging, config.log_level))
     
     # Настройка логирования для внешних библиотек
     logging.getLogger("httpx").setLevel(logging.WARNING)
@@ -150,6 +160,8 @@ class BotApplication:
     
     async def run(self):
         """Основной цикл приложения"""
+        logger = logging.getLogger(__name__)
+        
         try:
             # Инициализация
             if not await self.initialize():
@@ -168,11 +180,9 @@ class BotApplication:
             return True
             
         except KeyboardInterrupt:
-            logger = logging.getLogger(__name__)
             logger.info("Получен сигнал прерывания")
             return True
         except Exception as e:
-            logger = logging.getLogger(__name__)
             logger.error(f"Критическая ошибка: {e}")
             return False
         finally:
