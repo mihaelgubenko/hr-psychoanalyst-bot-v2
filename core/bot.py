@@ -134,9 +134,9 @@ class HRPsychoanalystBot:
             'ai_client': self.ai_client.get_system_health(),
             'database': self.db.get_health_status(),
             'config': {
-                'max_tokens': self.config.MAX_TOKENS,
+                'max_tokens': self.config.max_tokens,
                 'cache_enabled': True,
-                'monitoring_enabled': self.config.MONITORING_ENABLED
+                'monitoring_enabled': self.config.monitoring_enabled
             }
         }
     

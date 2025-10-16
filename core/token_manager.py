@@ -3,7 +3,7 @@
 Улучшенная версия с типизацией и метриками
 """
 
-import tiktoken
+# import tiktoken  # Временно отключено из-за проблем с установкой
 import logging
 from typing import Dict, List, Tuple, Optional, Union
 from dataclasses import dataclass
@@ -47,7 +47,8 @@ class TokenManager:
     
     def __init__(self, config):
         self.config = config
-        self.encoding = tiktoken.get_encoding("cl100k_base")
+        # self.encoding = tiktoken.get_encoding("cl100k_base")  # Временно отключено
+        self.encoding = None
         
         # Стоимость токенов для разных моделей (за 1K токенов)
         self.token_costs = {
@@ -69,7 +70,11 @@ class TokenManager:
     def count_tokens(self, text: str) -> int:
         """Точный подсчет токенов в тексте"""
         try:
-            return len(self.encoding.encode(text))
+            if self.encoding:
+                return len(self.encoding.encode(text))
+            else:
+                # Fallback: примерная оценка (1 токен ≈ 4 символа)
+                return len(text) // 4
         except Exception as e:
             logger.error(f"Ошибка подсчета токенов: {e}")
             # Fallback: примерная оценка (1 токен ≈ 4 символа)

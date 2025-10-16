@@ -2,7 +2,7 @@
 Менеджер токенов для оптимизации использования OpenAI API
 """
 
-import tiktoken
+# import tiktoken  # Временно отключено из-за проблем с установкой
 import logging
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
@@ -22,7 +22,8 @@ class TokenManager:
     
     def __init__(self, config):
         self.config = config
-        self.encoding = tiktoken.get_encoding("cl100k_base")
+        # self.encoding = tiktoken.get_encoding("cl100k_base")  # Временно отключено
+        self.encoding = None
         
         # Стоимость токенов для GPT-4 (примерная)
         self.token_costs = {
@@ -33,7 +34,11 @@ class TokenManager:
     def count_tokens(self, text: str) -> int:
         """Подсчет токенов в тексте"""
         try:
-            return len(self.encoding.encode(text))
+            if self.encoding:
+                return len(self.encoding.encode(text))
+            else:
+                # Примерная оценка: 1 токен ≈ 4 символа
+                return len(text) // 4
         except Exception as e:
             logger.error(f"Ошибка подсчета токенов: {e}")
             # Примерная оценка: 1 токен ≈ 4 символа

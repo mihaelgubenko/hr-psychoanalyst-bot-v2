@@ -43,6 +43,7 @@ class AdaptivePromptManager:
         self.config = config
         self.templates = self._load_default_templates()
         self.user_preferences = {}  # Предпочтения пользователей
+        self.book_prompts = self._load_book_prompts()  # Промпты из книги "Восхождение"
     
     def _load_default_templates(self) -> Dict[str, PromptTemplate]:
         """Загрузка стандартных шаблонов промптов"""
@@ -220,6 +221,15 @@ class AdaptivePromptManager:
         
         return templates
     
+    def _load_book_prompts(self):
+        """Загрузка промптов из книги 'Восхождение'"""
+        try:
+            from ai.book_prompts import BookPromptManager
+            return BookPromptManager()
+        except Exception as e:
+            logger.error(f"Ошибка загрузки промптов из книги: {e}")
+            return None
+    
     def get_optimal_prompt(
         self, 
         prompt_type: PromptType, 
@@ -228,6 +238,12 @@ class AdaptivePromptManager:
         context: Optional[Dict] = None
     ) -> Tuple[str, str]:
         """Получение оптимального промпта на основе доступных токенов"""
+        
+        # Сначала пробуем получить промпт из книги "Восхождение"
+        if self.book_prompts:
+            book_prompt = self._get_book_prompt(prompt_type, context or {})
+            if book_prompt:
+                return book_prompt, f"book_{prompt_type.value}"
         
         # Получаем предпочтения пользователя
         user_prefs = self.user_preferences.get(user_id, {})
@@ -269,6 +285,27 @@ class AdaptivePromptManager:
         formatted_prompt = self._format_prompt(selected_template, context or {})
         
         return formatted_prompt, selected_template.id
+    
+    def _get_book_prompt(self, prompt_type: PromptType, context: Dict) -> Optional[str]:
+        """Получение промпта из книги 'Восхождение'"""
+        if not self.book_prompts:
+            return None
+        
+        # Маппинг типов промптов на промпты из книги
+        book_prompt_mapping = {
+            PromptType.EXPRESS_ANALYSIS: "main_analysis",
+            PromptType.FULL_ANALYSIS: "main_analysis", 
+            PromptType.PSYCHOLOGY_CONSULTATION: "emotion_work",
+            PromptType.CAREER_CONSULTATION: "main_analysis",
+            PromptType.EMOTIONAL_SUPPORT: "emotion_work",
+            PromptType.SELF_ESTEEM_ANALYSIS: "self_esteem_analysis"
+        }
+        
+        book_prompt_id = book_prompt_mapping.get(prompt_type)
+        if book_prompt_id:
+            return self.book_prompts.get_prompt(book_prompt_id, context)
+        
+        return None
     
     def _select_optimal_length(self, available_tokens: int, user_prefs: Dict) -> PromptLength:
         """Выбор оптимальной длины промпта"""
