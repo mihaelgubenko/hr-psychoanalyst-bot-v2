@@ -84,20 +84,9 @@ class BotConversationHandler:
             # Отправляем ответ
             await self._send_response(update, response)
             
-            # Добавляем кнопку отмены под ответом
-            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            # PREMIUM FEATURE: Кнопки консультации отключены (функция перенесена в premium_consultation.py)
             
-            cancel_keyboard = [
-                [InlineKeyboardButton("❌ Завершить консультацию", callback_data='end_consultation')],
-                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
-            ]
-            
-            await update.message.reply_text(
-                "─────────────────",
-                reply_markup=InlineKeyboardMarkup(cancel_keyboard)
-            )
-            
-            # FOLLOW-UP РЕЖИМ: Уменьшаем счетчик бесплатных вопросов
+            # FOLLOW-UP РЕЖИМ: Уменьшаем счетчик бесплатных вопросов (после теста)
             if context.user_data.get('followup_mode'):
                 free_q = context.user_data.get('free_questions', 0)
                 if free_q > 0:
@@ -110,44 +99,26 @@ class BotConversationHandler:
                             parse_mode=ParseMode.MARKDOWN
                         )
                     else:
-                        # Закончились вопросы
+                        # Закончились вопросы - предлагаем платную консультацию
                         from telegram import InlineKeyboardButton, InlineKeyboardMarkup
                         
                         keyboard = [
-                            [InlineKeyboardButton("👤 Личная консультация", callback_data='personal')],
+                            [InlineKeyboardButton("💼 Личная консультация", callback_data='personal')],
                             [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
                         ]
                         
                         await update.message.reply_text(
                             "⚠️ **Бесплатные вопросы закончились (10/10)**\n\n"
-                            "Хотите продолжить глубокую работу?\n\n"
-                            "💎 **Личная консультация:**\n"
-                            "• Неограниченные вопросы\n"
-                            "• Персональный план\n"
-                            "• Глубокий разбор\n\n"
-                            "От 2000₽",
+                            "Хотите продолжить работу?\n\n"
+                            "💼 **Личная консультация (в разработке):**\n"
+                            "• До 15 вопросов в сессии\n"
+                            "• GPT-4 для сложных случаев\n"
+                            "• Кнопка 'Назад' для уточнения\n\n"
+                            "Ориентировочно: от 500₽",
                             reply_markup=InlineKeyboardMarkup(keyboard),
                             parse_mode=ParseMode.MARKDOWN
                         )
                         context.user_data.pop('followup_mode', None)
-                else:
-                    # Уже 0 вопросов
-                    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-                    
-                    keyboard = [
-                        [InlineKeyboardButton("👤 Записаться", callback_data='personal')],
-                        [InlineKeyboardButton("🏠 Меню", callback_data='main_menu')]
-                    ]
-                    
-                    await update.message.reply_text(
-                        "⚠️ Бесплатные вопросы закончились.\n\n"
-                        "Для продолжения нужна личная консультация.",
-                        reply_markup=InlineKeyboardMarkup(keyboard)
-                    )
-                    return 'WAITING_MESSAGE'
-            else:
-                # Обычный режим - предлагаем следующие шаги
-                await self._suggest_next_steps(update, patterns, len(self.conversation_history[user.id]))
             
         except Exception as e:
             logger.error(f"Ошибка получения ответа ИИ: {e}")
