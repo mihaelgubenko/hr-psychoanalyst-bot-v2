@@ -63,14 +63,13 @@ class BotConversationHandler:
             return 'WAITING_MESSAGE'
             
         elif text.strip() == "2":
-            await update.message.reply_text(
-                "💬 **БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ**\n\n"
-                "Отлично! Вы можете задать до **7 вопросов** бесплатно.\n\n"
-                "**Просто напишите свой вопрос, и я отвечу!** 📝\n\n"
-                "💡 Использую GPT-3.5 и принципы книги \"Восхождение\"",
-                parse_mode=ParseMode.MARKDOWN
-            )
-            return 'WAITING_MESSAGE'
+            # Запуск структурированной консультации
+            await self._start_structured_consultation(update, context)
+            return 'STRUCTURED_CONSULTATION'
+        
+        # Проверяем, находимся ли в режиме структурированной консультации
+        if context.user_data.get('consultation_type') == 'structured':
+            return await self._handle_consultation_answer(update, context)
         
         # Инициализируем историю пользователя
         if user.id not in self.conversation_history:
@@ -222,6 +221,144 @@ class BotConversationHandler:
             )
         
         return 'WAITING_MESSAGE'
+    
+    async def _start_structured_consultation(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Запуск структурированной консультации"""
+        user = update.effective_user
+        
+        # Инициализируем данные консультации
+        context.user_data['consultation_type'] = 'structured'
+        context.user_data['consultation_answers'] = []
+        context.user_data['current_question'] = 0
+        context.user_data['consultation_questions'] = [
+            "Что вас больше всего беспокоит в себе? (1-2 предложения)",
+            "Какие качества вы хотели бы развить? (1-2 предложения)", 
+            "Что мешает вам чувствовать уверенность? (1-2 предложения)",
+            "Как вы обычно справляетесь со стрессом? (1-2 предложения)",
+            "Что помогает вам чувствовать себя лучше? (1-2 предложения)",
+            "Какие у вас есть мечты или цели? (1-2 предложения)",
+            "Что бы вы хотели изменить в своей жизни? (1-2 предложения)"
+        ]
+        
+        intro_text = """
+💬 **БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ** (7 вопросов)
+
+Отвечайте кратко на каждый вопрос (1-2 предложения).
+
+**Принципы:** Книга "Восхождение"
+**Модель:** GPT-3.5 (экономичная)
+**Результат:** Персональные рекомендации
+
+Начинаем! ⬇️
+"""
+        
+        await update.message.reply_text(intro_text, parse_mode=ParseMode.MARKDOWN)
+        await self._ask_consultation_question(update, context)
+    
+    async def _ask_consultation_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Задать вопрос консультации"""
+        current_q = context.user_data.get('current_question', 0)
+        questions = context.user_data.get('consultation_questions', [])
+        
+        if current_q >= len(questions):
+            # Все вопросы заданы - делаем анализ
+            await self._analyze_consultation_answers(update, context)
+            return
+        
+        question_text = f"**Вопрос {current_q + 1}/7:**\n{questions[current_q]}"
+        progress = "🟩" * (current_q + 1) + "⬜" * (len(questions) - current_q - 1)
+        
+        await update.message.reply_text(
+            f"{question_text}\n\n{progress}",
+            parse_mode=ParseMode.MARKDOWN
+        )
+    
+    async def _analyze_consultation_answers(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Анализ ответов консультации"""
+        user = update.effective_user
+        answers = context.user_data.get('consultation_answers', [])
+        
+        # Формируем краткий анализ
+        analysis_prompt = f"""Ты психолог по книге "Восхождение". 
+
+ОТВЕТЫ ПОЛЬЗОВАТЕЛЯ:
+{chr(10).join([f"Вопрос {i+1}: {answers[i]}" for i in range(len(answers))])}
+
+ЗАДАЧА: Дай краткий анализ (100-150 слов) с 2-3 практическими рекомендациями.
+
+ФОРМАТ:
+💙 Понимание ситуации
+💡 2-3 конкретных совета из книги "Восхождение"
+🎯 Следующий шаг
+
+СТИЛЬ: Поддерживающий, практичный, краткий."""
+        
+        try:
+            # Показываем, что бот думает
+            thinking_msg = await update.message.reply_text("🤔 Анализирую ваши ответы...")
+            
+            # Получаем краткий анализ
+            analysis = await self.ai_client.get_direct_response(analysis_prompt, user.id)
+            
+            # Удаляем индикатор
+            await thinking_msg.delete()
+            
+            # Отправляем результат
+            await update.message.reply_text(
+                f"📋 **РЕЗУЛЬТАТ КОНСУЛЬТАЦИИ**\n\n{analysis}",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+            # Кнопки завершения
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            
+            keyboard = [
+                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
+                [InlineKeyboardButton("📊 Тест самооценки", callback_data='test_samoocenka')]
+            ]
+            
+            await update.message.reply_text(
+                "✅ **Консультация завершена!**\n\nЧто делать дальше?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            
+        except Exception as e:
+            logger.error(f"Ошибка анализа консультации: {e}")
+            await update.message.reply_text(
+                "Извините, произошла ошибка при анализе. Попробуйте позже."
+            )
+        
+        # Очищаем данные
+        context.user_data.clear()
+    
+    async def _handle_consultation_answer(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
+        """Обработка ответа в структурированной консультации"""
+        user = update.effective_user
+        text = update.message.text.strip()
+        
+        if not text:
+            await update.message.reply_text("Пожалуйста, напишите ответ на вопрос.")
+            return 'STRUCTURED_CONSULTATION'
+        
+        # Проверяем длину ответа (не более 200 символов)
+        if len(text) > 200:
+            await update.message.reply_text(
+                "Ответ слишком длинный. Пожалуйста, опишите кратко в 1-2 предложения."
+            )
+            return 'STRUCTURED_CONSULTATION'
+        
+        # Сохраняем ответ
+        answers = context.user_data.get('consultation_answers', [])
+        answers.append(text)
+        context.user_data['consultation_answers'] = answers
+        
+        # Переходим к следующему вопросу
+        current_q = context.user_data.get('current_question', 0)
+        context.user_data['current_question'] = current_q + 1
+        
+        await self._ask_consultation_question(update, context)
+        return 'STRUCTURED_CONSULTATION'
     
     def _is_direct_question(self, text: str) -> bool:
         """Определение прямых вопросов, требующих немедленного ответа"""

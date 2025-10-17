@@ -562,7 +562,7 @@ class AnalysisHandler:
             keyboard = [
                 [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
                 [InlineKeyboardButton("🔄 Начать тест заново", callback_data='test_restart')],
-                [InlineKeyboardButton("💬 Бесплатная консультация", callback_data='start_consultation_from_help')],
+                [InlineKeyboardButton("💬 Бесплатная консультация (7 вопросов)", callback_data='start_consultation_from_help')],
                 [InlineKeyboardButton("💼 Личная консультация", callback_data='personal')]
             ]
             
