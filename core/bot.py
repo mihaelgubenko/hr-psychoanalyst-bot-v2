@@ -54,8 +54,8 @@ class HRPsychoanalystBot:
         self.application.add_handler(CommandHandler('test', self.analysis_handler.start_button_test))
         self.application.add_handler(CommandHandler('test_buttons', self.analysis_handler.start_button_test))  # Алиас
         
-        # Консультация
-        self.application.add_handler(CommandHandler('consultation', self.message_handler.start_consultation))
+        # PREMIUM: Консультация перенесена в premium_consultation.py
+        # self.application.add_handler(CommandHandler('consultation', self.message_handler.start_consultation))
         
         # Административные команды
         self.application.add_handler(CommandHandler('clear', self.message_handler.clear_memory))
