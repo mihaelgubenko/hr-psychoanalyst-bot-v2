@@ -252,7 +252,14 @@ class BotConversationHandler:
 Начинаем! ⬇️
 """
         
-        await update.message.reply_text(intro_text, parse_mode=ParseMode.MARKDOWN)
+        # Проверяем, это callback query или обычное сообщение
+        if update.callback_query:
+            # Кнопка была нажата - используем edit_message_text
+            await update.callback_query.edit_message_text(intro_text, parse_mode=ParseMode.MARKDOWN)
+        else:
+            # Обычное сообщение - используем reply_text
+            await update.message.reply_text(intro_text, parse_mode=ParseMode.MARKDOWN)
+        
         await self._ask_consultation_question(update, context)
     
     async def _ask_consultation_question(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -268,10 +275,19 @@ class BotConversationHandler:
         question_text = f"**Вопрос {current_q + 1}/7:**\n{questions[current_q]}"
         progress = "🟩" * (current_q + 1) + "⬜" * (len(questions) - current_q - 1)
         
-        await update.message.reply_text(
-            f"{question_text}\n\n{progress}",
-            parse_mode=ParseMode.MARKDOWN
-        )
+        # Проверяем, это callback query или обычное сообщение
+        if update.callback_query:
+            # Кнопка была нажата - отправляем новое сообщение
+            await update.callback_query.message.reply_text(
+                f"{question_text}\n\n{progress}",
+                parse_mode=ParseMode.MARKDOWN
+            )
+        else:
+            # Обычное сообщение - используем reply_text
+            await update.message.reply_text(
+                f"{question_text}\n\n{progress}",
+                parse_mode=ParseMode.MARKDOWN
+            )
     
     async def _analyze_consultation_answers(self, update: Update, context: ContextTypes.DEFAULT_TYPE):
         """Анализ ответов консультации"""
@@ -304,10 +320,18 @@ class BotConversationHandler:
             await thinking_msg.delete()
             
             # Отправляем результат
-            await update.message.reply_text(
-                f"📋 **РЕЗУЛЬТАТ КОНСУЛЬТАЦИИ**\n\n{analysis}",
-                parse_mode=ParseMode.MARKDOWN
-            )
+            if update.callback_query:
+                # Кнопка была нажата - отправляем новое сообщение
+                await update.callback_query.message.reply_text(
+                    f"📋 **РЕЗУЛЬТАТ КОНСУЛЬТАЦИИ**\n\n{analysis}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                # Обычное сообщение - используем reply_text
+                await update.message.reply_text(
+                    f"📋 **РЕЗУЛЬТАТ КОНСУЛЬТАЦИИ**\n\n{analysis}",
+                    parse_mode=ParseMode.MARKDOWN
+                )
             
             # Кнопки завершения
             from telegram import InlineKeyboardButton, InlineKeyboardMarkup
@@ -317,17 +341,31 @@ class BotConversationHandler:
                 [InlineKeyboardButton("📊 Тест самооценки", callback_data='test_samoocenka')]
             ]
             
-            await update.message.reply_text(
-                "✅ **Консультация завершена!**\n\nЧто делать дальше?",
-                reply_markup=InlineKeyboardMarkup(keyboard),
-                parse_mode=ParseMode.MARKDOWN
-            )
+            if update.callback_query:
+                # Кнопка была нажата - отправляем новое сообщение
+                await update.callback_query.message.reply_text(
+                    "✅ **Консультация завершена!**\n\nЧто делать дальше?",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+            else:
+                # Обычное сообщение - используем reply_text
+                await update.message.reply_text(
+                    "✅ **Консультация завершена!**\n\nЧто делать дальше?",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.MARKDOWN
+                )
             
         except Exception as e:
             logger.error(f"Ошибка анализа консультации: {e}")
-            await update.message.reply_text(
-                "Извините, произошла ошибка при анализе. Попробуйте позже."
-            )
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    "Извините, произошла ошибка при анализе. Попробуйте позже."
+                )
+            else:
+                await update.message.reply_text(
+                    "Извините, произошла ошибка при анализе. Попробуйте позже."
+                )
         
         # Очищаем данные
         context.user_data.clear()
