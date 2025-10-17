@@ -557,13 +557,21 @@ class AnalysisHandler:
         
         # Проверка на отмену
         if data == 'cancel_test':
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            
+            keyboard = [
+                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
+                [InlineKeyboardButton("🔄 Начать тест заново", callback_data='test_restart')],
+                [InlineKeyboardButton("💬 Бесплатная консультация", callback_data='start_consultation_from_help')],
+                [InlineKeyboardButton("💼 Личная консультация", callback_data='personal')]
+            ]
+            
             await query.edit_message_text(
                 "❌ **ТЕСТ ОТМЕНЕН**\n\n"
                 "Ваши ответы не сохранены.\n\n"
-                "Что делать дальше?\n"
-                "/start - Главное меню\n"
-                "/test - Начать тест заново\n"
-                "/consultation - Консультация"
+                "Что делать дальше?",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
             )
             self.button_test_data.pop(user.id, None)
             return
