@@ -69,6 +69,39 @@ class BotConversationHandler:
         
         # Проверяем, находимся ли в режиме структурированной консультации
         if context.user_data.get('consultation_type') == 'structured':
+            # Обработка команд отмены и возврата
+            text_lower = text.lower().strip()
+            if text_lower in ['отмена', 'отменить', 'cancel', 'стоп', 'хватит']:
+                context.user_data.clear()
+                await update.message.reply_text(
+                    "❌ **КОНСУЛЬТАЦИЯ ОТМЕНЕНА**\n\n"
+                    "Ваши ответы не сохранены.\n\n"
+                    "Что делать дальше?\n"
+                    "/start - Главное меню\n"
+                    "/test - Тест самооценки\n"
+                    "/consultation - Начать консультацию заново",
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return 'WAITING_MESSAGE'
+            
+            if text_lower in ['назад', 'back', 'предыдущий']:
+                current_q = context.user_data.get('current_question', 0)
+                if current_q > 0:
+                    # Возвращаемся к предыдущему вопросу
+                    prev_question = current_q - 1
+                    context.user_data['current_question'] = prev_question
+                    
+                    # Удаляем последний ответ
+                    answers = context.user_data.get('consultation_answers', [])
+                    if len(answers) > prev_question:
+                        context.user_data['consultation_answers'] = answers[:prev_question]
+                    
+                    await self._ask_consultation_question(update, context)
+                    return 'STRUCTURED_CONSULTATION'
+                else:
+                    await update.message.reply_text("Вы на первом вопросе. Отменить консультацию: напишите 'отмена'")
+                    return 'STRUCTURED_CONSULTATION'
+            
             return await self._handle_consultation_answer(update, context)
         
         # Инициализируем историю пользователя
@@ -275,17 +308,31 @@ class BotConversationHandler:
         question_text = f"**Вопрос {current_q + 1}/7:**\n{questions[current_q]}"
         progress = "🟩" * (current_q + 1) + "⬜" * (len(questions) - current_q - 1)
         
+        # Создаем кнопки для навигации
+        from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+        
+        keyboard = []
+        
+        # Кнопка "Назад" только если не первый вопрос
+        if current_q > 0:
+            keyboard.append([InlineKeyboardButton("⬅️ Назад к предыдущему вопросу", callback_data=f'consultation_back_{current_q - 1}')])
+        
+        # Кнопка отмены
+        keyboard.append([InlineKeyboardButton("❌ Отменить консультацию", callback_data='cancel_consultation')])
+        
         # Проверяем, это callback query или обычное сообщение
         if update.callback_query:
             # Кнопка была нажата - отправляем новое сообщение
             await update.callback_query.message.reply_text(
                 f"{question_text}\n\n{progress}",
+                reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode=ParseMode.MARKDOWN
             )
         else:
             # Обычное сообщение - используем reply_text
             await update.message.reply_text(
                 f"{question_text}\n\n{progress}",
+                reply_markup=InlineKeyboardMarkup(keyboard),
                 parse_mode=ParseMode.MARKDOWN
             )
     

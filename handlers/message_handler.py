@@ -288,6 +288,36 @@ class MessageHandler:
                 await self.analysis_handler.handle_button_test_answer(update, context)
             return
         
+        # Обработка кнопок консультации
+        if data == 'cancel_consultation':
+            # Отмена консультации
+            context.user_data.clear()
+            await query.edit_message_text(
+                "❌ **КОНСУЛЬТАЦИЯ ОТМЕНЕНА**\n\n"
+                "Ваши ответы не сохранены.\n\n"
+                "Что делать дальше?\n"
+                "/start - Главное меню\n"
+                "/test - Тест самооценки\n"
+                "/consultation - Начать консультацию заново",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+        
+        if data.startswith('consultation_back_'):
+            # Возврат к предыдущему вопросу в консультации
+            prev_question = int(data.split('consultation_back_')[1])
+            context.user_data['current_question'] = prev_question
+            
+            # Удаляем последний ответ
+            answers = context.user_data.get('consultation_answers', [])
+            if len(answers) > prev_question:
+                context.user_data['consultation_answers'] = answers[:prev_question]
+            
+            # Показываем предыдущий вопрос
+            if hasattr(self, 'conversation_handler'):
+                await self.conversation_handler._ask_consultation_question(update, context)
+            return
+        
         # Завершение консультации
         if data == 'end_consultation':
             context.user_data.clear()
