@@ -55,8 +55,8 @@ class HRPsychoanalystBot:
         self.application.add_handler(CommandHandler('test', self.analysis_handler.start_button_test))
         self.application.add_handler(CommandHandler('test_buttons', self.analysis_handler.start_button_test))  # Алиас
         
-        # PREMIUM: Консультация перенесена в premium_consultation.py
-        # self.application.add_handler(CommandHandler('consultation', self.message_handler.start_consultation))
+        # Команда консультации
+        self.application.add_handler(CommandHandler('consultation', self._start_consultation_command))
         
         # Административные команды
         self.application.add_handler(CommandHandler('clear', self.message_handler.clear_memory))
@@ -98,6 +98,10 @@ class HRPsychoanalystBot:
         except Exception as e:
             logger.error(f"Ошибка при запуске бота: {e}")
             raise
+    
+    async def _start_consultation_command(self, update, context):
+        """Команда /consultation для запуска структурированной консультации"""
+        await self.conversation_handler._start_structured_consultation(update, context)
     
     async def stop(self):
         """Остановка бота"""
