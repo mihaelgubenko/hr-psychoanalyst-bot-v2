@@ -29,6 +29,28 @@ class BotConversationHandler:
             await update.message.reply_text("Пожалуйста, напишите что-то конкретное.")
             return 'WAITING_MESSAGE'
         
+        # Обработка запроса на консультацию
+        if 'записать' in text.lower() and 'консультац' in text.lower():
+            from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+            
+            keyboard = [
+                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
+                [InlineKeyboardButton("📊 Тест самооценки", callback_data='test_samoocenka')]
+            ]
+            
+            await update.message.reply_text(
+                "📝 **ЗАПИСЬ НА КОНСУЛЬТАЦИЮ**\n\n"
+                "Спасибо за интерес!\n\n"
+                "💼 **Для записи свяжитесь:**\n"
+                "📧 Email: [укажите ваш email]\n"
+                "📱 Telegram: @[ваш username]\n"
+                "☎️ Телефон: [укажите номер]\n\n"
+                "🔔 Мы свяжемся с вами в ближайшее время!",
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return 'WAITING_MESSAGE'
+        
         # Инициализируем историю пользователя
         if user.id not in self.conversation_history:
             self.conversation_history[user.id] = []
