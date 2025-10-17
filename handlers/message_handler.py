@@ -323,6 +323,27 @@ class MessageHandler:
                 parse_mode=ParseMode.MARKDOWN
             )
             return
+            
+        elif data == 'start_test_from_help':
+            # Запуск теста из справки
+            await query.edit_message_text(
+                "📊 **ТЕСТ САМООЦЕНКИ**\n\n"
+                "Отлично! Запускаю тест с кнопками.\n"
+                "Используйте команду: /test",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
+            
+        elif data == 'start_consultation_from_help':
+            # Запуск бесплатной консультации из справки
+            await query.edit_message_text(
+                "💬 **БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ**\n\n"
+                "Отлично! Вы можете задать до **7 вопросов** бесплатно.\n\n"
+                "**Просто напишите свой вопрос, и я отвечу!** 📝\n\n"
+                "💡 Использую GPT-3.5 и принципы книги \"Восхождение\"",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return
         
         if data == 'test_samoocenka':
             # Запускаем тест с кнопками напрямую
@@ -391,17 +412,11 @@ class MessageHandler:
             await query.edit_message_text(personal_text, parse_mode=ParseMode.MARKDOWN)
             
         elif data == 'help':
-            # Справка
+            # Справка с интерактивными кнопками
             help_text = """
 ❓ **СПРАВКА**
 
 **🎯 С ЧЕГО НАЧАТЬ:**
-
-1️⃣ Пройдите /test
-   → Тест самооценки с кнопками (3 минуты)
-
-2️⃣ Задайте свой вопрос
-   → Получите персональные рекомендации
 
 **💬 КОМАНДЫ:**
 /start - Главное меню
@@ -415,6 +430,18 @@ class MessageHandler:
 • Духовные принципы самопознания
 • Практические упражнения
 
-/start - Вернуться в меню
+**Выберите действие:**
 """
-            await query.edit_message_text(help_text, parse_mode=ParseMode.MARKDOWN)
+            
+            # Создаем интерактивные кнопки
+            keyboard = [
+                [InlineKeyboardButton("1️⃣ Тест самооценки", callback_data='start_test_from_help')],
+                [InlineKeyboardButton("2️⃣ Задать вопрос", callback_data='start_consultation_from_help')],
+                [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+            ]
+            
+            await query.edit_message_text(
+                help_text,
+                reply_markup=InlineKeyboardMarkup(keyboard),
+                parse_mode=ParseMode.MARKDOWN
+            )

@@ -52,6 +52,26 @@ class BotConversationHandler:
             )
             return 'WAITING_MESSAGE'
         
+        # Обработка команд "1" и "2" (из справки)
+        if text.strip() == "1":
+            await update.message.reply_text(
+                "📊 **ТЕСТ САМООЦЕНКИ**\n\n"
+                "Отлично! Запускаю тест с кнопками.\n"
+                "Используйте команду: /test",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return 'WAITING_MESSAGE'
+            
+        elif text.strip() == "2":
+            await update.message.reply_text(
+                "💬 **БЕСПЛАТНАЯ КОНСУЛЬТАЦИЯ**\n\n"
+                "Отлично! Вы можете задать до **7 вопросов** бесплатно.\n\n"
+                "**Просто напишите свой вопрос, и я отвечу!** 📝\n\n"
+                "💡 Использую GPT-3.5 и принципы книги \"Восхождение\"",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return 'WAITING_MESSAGE'
+        
         # Инициализируем историю пользователя
         if user.id not in self.conversation_history:
             self.conversation_history[user.id] = []
