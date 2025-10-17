@@ -9,6 +9,7 @@ from telegram.ext import ContextTypes
 from telegram.constants import ParseMode
 
 from ai.adaptive_prompt_manager import PromptType
+from ai.security_manager import SecurityManager
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +21,7 @@ class BotConversationHandler:
         self.database = database
         self.conversation_history = {}  # user_id -> list of messages
         self.free_consultation_tracker = {}  # user_id -> {'count': int, 'max': 7}
+        self.security_manager = SecurityManager()  # Менеджер безопасности
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """Обработка входящих сообщений"""
@@ -28,6 +30,26 @@ class BotConversationHandler:
         
         if not text:
             await update.message.reply_text("Пожалуйста, напишите что-то конкретное.")
+            return 'WAITING_MESSAGE'
+        
+        # 🔒 ПРОВЕРКИ БЕЗОПАСНОСТИ
+        
+        # 1. Проверка поведения пользователя
+        is_allowed, reason = self.security_manager.check_user_behavior(user.id)
+        if not is_allowed:
+            await update.message.reply_text(f"⚠️ {reason}")
+            return 'WAITING_MESSAGE'
+        
+        # 2. Проверка rate limiting
+        is_allowed, reason = self.security_manager.check_rate_limit(user.id)
+        if not is_allowed:
+            await update.message.reply_text(f"⏰ {reason}")
+            return 'WAITING_MESSAGE'
+        
+        # 3. Проверка на спам
+        is_spam, reason = self.security_manager.check_spam_patterns(user.id, text)
+        if is_spam:
+            await update.message.reply_text(f"🚫 {reason}")
             return 'WAITING_MESSAGE'
         
         # Обработка запроса на консультацию
@@ -183,6 +205,14 @@ class BotConversationHandler:
             
             # Получаем ответ от ИИ (используем GPT-3.5 для бесплатной консультации)
             response = await self._get_ai_response(user.id, text, response_type)
+            
+            # 4. Проверка лимита токенов (приблизительная оценка)
+            estimated_tokens = len(text.split()) * 1.3 + len(response.split()) * 1.3  # Примерная оценка
+            is_allowed, reason = self.security_manager.check_token_limit(user.id, int(estimated_tokens))
+            if not is_allowed:
+                await thinking_msg.delete()
+                await update.message.reply_text(f"💰 {reason}")
+                return 'WAITING_MESSAGE'
             
             # Удаляем индикатор
             await thinking_msg.delete()
