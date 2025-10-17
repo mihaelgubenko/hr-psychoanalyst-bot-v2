@@ -32,6 +32,7 @@ class HRPsychoanalystBot:
         
         # Даем message_handler доступ к analysis_handler для кнопок теста
         self.message_handler.analysis_handler = self.analysis_handler
+        self.message_handler.conversation_handler = self.conversation_handler
         
         # Создаем приложение
         self.application = ApplicationBuilder().token(config.bot_token).build()

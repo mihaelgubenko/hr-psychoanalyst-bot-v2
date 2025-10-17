@@ -19,6 +19,7 @@ class BotConversationHandler:
         self.ai_client = ai_client
         self.database = database
         self.conversation_history = {}  # user_id -> list of messages
+        self.free_consultation_tracker = {}  # user_id -> {'count': int, 'max': 7}
     
     async def handle_message(self, update: Update, context: ContextTypes.DEFAULT_TYPE) -> str:
         """Обработка входящих сообщений"""
@@ -54,6 +55,36 @@ class BotConversationHandler:
         # Инициализируем историю пользователя
         if user.id not in self.conversation_history:
             self.conversation_history[user.id] = []
+        
+        # Инициализируем трекер бесплатной консультации
+        if user.id not in self.free_consultation_tracker:
+            self.free_consultation_tracker[user.id] = {'count': 0, 'max': 7}
+        
+        # Проверяем лимит бесплатной консультации (если не follow-up режим)
+        if not context.user_data.get('followup_mode'):
+            tracker = self.free_consultation_tracker[user.id]
+            if tracker['count'] >= tracker['max']:
+                # Лимит исчерпан
+                from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                
+                keyboard = [
+                    [InlineKeyboardButton("💼 Личная консультация", callback_data='personal')],
+                    [InlineKeyboardButton("📊 Пройти тест", callback_data='test_samoocenka')],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+                ]
+                
+                await update.message.reply_text(
+                    f"⚠️ **Бесплатная консультация исчерпана ({tracker['count']}/{tracker['max']})**\n\n"
+                    f"Хотите продолжить?\n\n"
+                    f"💼 **Личная консультация (в разработке):**\n"
+                    f"• До 15 вопросов в сессии\n"
+                    f"• GPT-4 для сложных случаев\n"
+                    f"• Кнопка 'Назад' для уточнения\n\n"
+                    f"Ориентировочно: от 500₽",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.MARKDOWN
+                )
+                return 'WAITING_MESSAGE'
         
         # Добавляем сообщение в историю
         self.conversation_history[user.id].append(text)
@@ -98,13 +129,37 @@ class BotConversationHandler:
             thinking_msg = await update.message.reply_text("🤔 Думаю...")
             await context.bot.send_chat_action(chat_id=update.effective_chat.id, action="typing")
             
-            response = await self._get_ai_response(user.id, text, response_type)
+            # Определяем модель (GPT-3.5 для бесплатной консультации)
+            model = "gpt-3.5-turbo"  # Используем более дешевую модель для бесплатной консультации
+            
+            response = await self._get_ai_response(user.id, text, response_type, model)
             
             # Удаляем индикатор
             await thinking_msg.delete()
             
             # Отправляем ответ
             await self._send_response(update, response)
+            
+            # Увеличиваем счетчик бесплатной консультации (если не follow-up режим)
+            if not context.user_data.get('followup_mode'):
+                self.free_consultation_tracker[user.id]['count'] += 1
+                remaining = self.free_consultation_tracker[user.id]['max'] - self.free_consultation_tracker[user.id]['count']
+                
+                from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+                
+                # Кнопки управления
+                keyboard = [
+                    [InlineKeyboardButton("❌ Завершить", callback_data='end_consultation')],
+                    [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')]
+                ]
+                
+                await update.message.reply_text(
+                    f"💡 **Бесплатная консультация:** {self.free_consultation_tracker[user.id]['count']}/{self.free_consultation_tracker[user.id]['max']}\n"
+                    f"Осталось: **{remaining} вопросов**\n"
+                    f"─────────────────",
+                    reply_markup=InlineKeyboardMarkup(keyboard),
+                    parse_mode=ParseMode.MARKDOWN
+                )
             
             # PREMIUM FEATURE: Кнопки консультации отключены (функция перенесена в premium_consultation.py)
             
@@ -273,13 +328,13 @@ class BotConversationHandler:
         else:
             return PromptType.EXPRESS_ANALYSIS
     
-    async def _get_ai_response(self, user_id: int, message: str, response_type: PromptType) -> str:
+    async def _get_ai_response(self, user_id: int, message: str, response_type: PromptType, model: str = None) -> str:
         """Получение ответа от ИИ"""
         
         # Формируем контекст
         conversation_context = self.conversation_history.get(user_id, [])
         context = {
-            'conversation': '\n'.join(conversation_context),
+            'conversation': '\n'.join(conversation_context[-5:]),  # Последние 5 сообщений для экономии
             'user_message': message,
             'message_count': len(conversation_context)
         }
@@ -289,7 +344,8 @@ class BotConversationHandler:
             prompt=message,
             user_id=user_id,
             prompt_type=response_type,
-            context=context
+            context=context,
+            model=model  # Передаем модель (GPT-3.5 для бесплатной консультации)
         )
         
         return ai_response.content
@@ -343,6 +399,7 @@ class BotConversationHandler:
         user = update.effective_user
         self.ai_client.clear_user_data(user.id)
         self.conversation_history.pop(user.id, None)
+        self.free_consultation_tracker.pop(user.id, None)
         
         return 'END'
     

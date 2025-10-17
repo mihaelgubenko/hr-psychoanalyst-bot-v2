@@ -93,6 +93,10 @@ class MessageHandler:
         if hasattr(self, 'analysis_handler'):
             self.analysis_handler.button_test_data.pop(user.id, None)
         
+        # Очищаем трекер бесплатной консультации
+        if hasattr(self, 'conversation_handler'):
+            self.conversation_handler.free_consultation_tracker.pop(user.id, None)
+        
         keyboard = [
             [InlineKeyboardButton("🏠 Главное меню", callback_data='main_menu')],
             [InlineKeyboardButton("📊 Тест самооценки", callback_data='test_samoocenka')],
